@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Claude Code Hook Events",
+  "description": "Valid hook event names for Claude Code",
+  "type": "object",
+  "properties": {
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PreToolUse",
+          "PermissionRequest",
+          "PostToolUse",
+          "PostToolUseFailure",
+          "Notification",
+          "SubagentStart",
+          "SubagentStop",
+          "TaskCreated",
+          "TaskCompleted",
+          "Stop",
+          "StopFailure",
+          "TeammateIdle",
+          "InstructionsLoaded",
+          "ConfigChange",
+          "CwdChanged",
+          "FileChanged",
+          "WorktreeCreate",
+          "WorktreeRemove",
+          "PreCompact",
+          "PostCompact",
+          "SessionEnd",
+          "Elicitation",
+          "ElicitationResult"
+        ]
+      }
+    }
+  }
+}

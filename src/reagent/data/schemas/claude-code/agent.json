@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Claude Code Agent Frontmatter",
+  "type": "object",
+  "required": ["name", "description"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+      "description": "Unique identifier, lowercase + hyphens"
+    },
+    "description": {
+      "type": "string",
+      "description": "When Claude should delegate to this agent"
+    },
+    "tools": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Allowlist of tools; inherits all if omitted"
+    },
+    "disallowedTools": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Denylist of tools, applied before tools allowlist"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model to use: sonnet, opus, haiku, full model id, or inherit"
+    },
+    "permissionMode": {
+      "type": "string",
+      "enum": ["default", "acceptEdits", "dontAsk", "bypassPermissions", "plan"],
+      "description": "Permission mode for this agent"
+    },
+    "maxTurns": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum agentic turns"
+    },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Skills preloaded into subagent context"
+    },
+    "mcpServers": {
+      "description": "MCP servers as string references or inline definitions",
+      "oneOf": [
+        { "type": "array", "items": { "type": "string" } },
+        { "type": "object" }
+      ]
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Lifecycle hooks scoped to this subagent"
+    },
+    "memory": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Memory sources: user, project, or local"
+    },
+    "background": {
+      "type": "boolean",
+      "description": "Always run as background task"
+    },
+    "effort": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "max"],
+      "description": "Effort level"
+    },
+    "isolation": {
+      "type": "string",
+      "enum": ["worktree"],
+      "description": "Isolation mode for git worktree"
+    },
+    "initialPrompt": {
+      "type": "string",
+      "description": "Auto-submitted first user turn for --agent mode"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,41 @@
+name: 'Reagent Asset Check'
+description: 'Evaluate AI agent asset quality, detect drift, and suggest improvements'
+inputs:
+  mode:
+    description: 'CI mode: check, suggest, or auto-fix'
+    required: false
+    default: 'check'
+  threshold:
+    description: 'Minimum quality score (0-100)'
+    required: false
+    default: '60'
+  security:
+    description: 'Enable security scanning'
+    required: false
+    default: 'true'
+  repo:
+    description: 'Repository path to evaluate'
+    required: false
+    default: '.'
+outputs:
+  score:
+    description: 'Overall quality score (0-100)'
+    value: ${{ steps.run.outputs.score }}
+  passed:
+    description: 'Whether all assets passed the threshold'
+    value: ${{ steps.run.outputs.passed }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Install reagent
+      shell: bash
+      run: pip install reagent
+    - name: Run reagent CI
+      id: run
+      shell: bash
+      run: |
+        reagent ci \
+          --mode ${{ inputs.mode }} \
+          --threshold ${{ inputs.threshold }} \
+          --repo ${{ inputs.repo }} \
+          ${{ inputs.security == 'true' && '--security' || '--no-security' }}

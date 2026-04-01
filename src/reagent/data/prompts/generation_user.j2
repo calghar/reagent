@@ -1,0 +1,12 @@
+Generate a Claude Code {{ asset_type_value }} named "{{ name }}" for the following repository:
+
+{{ profile_section }}
+{% if evaluation_context %}
+## Quality Context (from previous evaluations)
+{{ evaluation_context }}
+{% endif %}{% if telemetry_context %}
+## Telemetry Context (from actual usage)
+{{ telemetry_context }}
+{% endif %}
+## Output Format
+Return ONLY the asset content: YAML frontmatter between --- delimiters, followed by the markdown body. No explanations, no code fences.

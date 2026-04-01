@@ -1,0 +1,9 @@
+{"type":"system","cwd":"/Users/dev/myproject","timestamp":"2026-03-10T10:00:00Z"}
+{"role":"user","content":"Review security policy","timestamp":"2026-03-10T10:00:05Z"}
+{"type":"tool_use","name":"Read","input":{"file_path":"src/security.py"},"timestamp":"2026-03-10T10:00:10Z"}
+{"type":"tool_result","content":"security module"}
+{"type":"tool_use","name":"Read","input":{"file_path":"src/auth.py"},"timestamp":"2026-03-10T10:00:15Z"}
+{"type":"tool_result","content":"auth module"}
+{"type":"tool_use","name":"Bash","input":{"command":"pytest tests/test_security.py"},"timestamp":"2026-03-10T10:00:20Z"}
+{"type":"tool_result","content":"8 passed"}
+{"role":"assistant","content":"Security review looks good.","timestamp":"2026-03-10T10:00:30Z"}

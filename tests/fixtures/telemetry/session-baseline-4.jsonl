@@ -1,0 +1,9 @@
+{"type":"system","cwd":"/Users/dev/myproject","timestamp":"2026-03-12T10:00:00Z"}
+{"role":"user","content":"Fix bug in data processing","timestamp":"2026-03-12T10:00:05Z"}
+{"type":"tool_use","name":"Read","input":{"file_path":"src/process.py"},"timestamp":"2026-03-12T10:00:10Z"}
+{"type":"tool_result","content":"data processing code"}
+{"type":"tool_use","name":"Edit","input":{"file_path":"src/process.py","old_text":"a","new_text":"b"},"timestamp":"2026-03-12T10:00:20Z"}
+{"type":"tool_result","content":"File edited successfully"}
+{"type":"tool_use","name":"Bash","input":{"command":"pytest"},"timestamp":"2026-03-12T10:00:30Z"}
+{"type":"tool_result","content":"10 passed"}
+{"role":"assistant","content":"Fixed.","timestamp":"2026-03-12T10:00:40Z"}

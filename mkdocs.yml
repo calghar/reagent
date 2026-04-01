@@ -1,0 +1,61 @@
+site_name: Reagent
+site_url: https://calghar.github.io/reagent
+site_description: Manage, secure, and evolve Claude Code assets across repositories
+repo_url: https://github.com/calghar/reagent
+repo_name: calghar/reagent
+edit_uri: ""
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide:
+      - CLI Reference: cli-reference.md
+      - Configuration: configuration.md
+      - Asset Creation: asset-creation.md
+      - Evaluation: evaluation.md
+      - CI Integration: ci-integration.md
+      - Dashboard: dashboard.md
+      - Security Scanning: security-scanning.md
+  - Comparison: comparison.md
+
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - admonition
+  - pymdownx.details
+
+hooks:
+  - scripts/docs_hooks.py

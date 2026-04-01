@@ -1,0 +1,64 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: "tsconfig.*json"
+      - id: end-of-file-fixer
+        exclude_types: [svg]
+      - id: trailing-whitespace
+        exclude_types: [svg]
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: check-merge-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: [-r, src/, -c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          [pydantic>=2.0, types-PyYAML>=6.0, click>=8.1, rich>=13.0]
+        args: [--strict, --ignore-missing-imports, src/reagent]
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: prettier-dashboard
+        name: Prettier (dashboard)
+        entry: bash -c 'cd dashboard && ./node_modules/.bin/prettier --write "${@#dashboard/}"' --
+        language: system
+        files: ^dashboard/src/.*\.(ts|tsx|css|json)$
+
+      - id: eslint-dashboard
+        name: ESLint (dashboard)
+        entry: bash -c 'cd dashboard && npm run lint'
+        language: system
+        files: ^dashboard/src/.*\.(ts|tsx)$
+        pass_filenames: false
+
+      - id: tsc-dashboard
+        name: TypeScript check (dashboard)
+        entry: bash -c 'cd dashboard && npm run typecheck'
+        language: system
+        files: ^dashboard/.*\.(ts|tsx)$
+        pass_filenames: false
+        stages: [manual]

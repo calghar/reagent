@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.python.org)",
+      "WebFetch(domain:github.com)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run ruff:*)"
+    ]
+  }
+}

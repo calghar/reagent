@@ -1,0 +1,90 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.Python
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Testing / coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.lcov
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+
+# Linting / formatting caches
+.ruff_cache/
+.eslintcache
+.stylelintcache
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.local
+
+# Node / frontend
+node_modules/
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.tsbuildinfo
+*.tsbuildinfo
+.npm/
+.yarn/
+.pnp.*
+.nyc_output/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vite
+dist-ssr/
+
+# Test results (JS)
+test-results/
+vitest-coverage/
+coverage/
+playwright-report/
+
+# Project-specific
+tmp/
+site/
+.gitnexus
+
+# Generated agent assets (never track in repo root)
+/agents/

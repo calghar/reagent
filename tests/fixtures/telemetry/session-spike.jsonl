@@ -1,0 +1,17 @@
+{"type":"system","cwd":"/Users/dev/myproject","timestamp":"2026-03-20T10:00:00Z"}
+{"role":"user","content":"Refactor the review module","timestamp":"2026-03-20T10:00:05Z"}
+{"type":"tool_use","name":"Read","input":{"file_path":"src/review.py"},"timestamp":"2026-03-20T10:00:10Z"}
+{"type":"tool_result","content":"review module code"}
+{"type":"tool_use","name":"Edit","input":{"file_path":"src/review.py","old_text":"def review","new_text":"def review_v2"},"timestamp":"2026-03-20T10:00:20Z"}
+{"type":"tool_result","content":"File edited successfully"}
+{"role":"user","content":[{"type":"text","text":"No, revert that"}],"tool_use":{"name":"Edit","input":{"file_path":"src/review.py","old_text":"review_v2","new_text":"review"}},"timestamp":"2026-03-20T10:00:30Z"}
+{"type":"tool_use","name":"Edit","input":{"file_path":"src/review.py","old_text":"return result","new_text":"return new_result"},"timestamp":"2026-03-20T10:00:40Z"}
+{"type":"tool_result","content":"File edited successfully"}
+{"role":"user","content":[{"type":"text","text":"That is wrong too"}],"tool_use":{"name":"Edit","input":{"file_path":"src/review.py","old_text":"new_result","new_text":"result"}},"timestamp":"2026-03-20T10:00:50Z"}
+{"type":"tool_use","name":"Edit","input":{"file_path":"src/utils.py","old_text":"def helper","new_text":"def helper_v2"},"timestamp":"2026-03-20T10:01:00Z"}
+{"type":"tool_result","content":"File edited successfully"}
+{"role":"user","content":[{"type":"text","text":"Fix the name back"}],"tool_use":{"name":"Edit","input":{"file_path":"src/utils.py","old_text":"helper_v2","new_text":"helper"}},"timestamp":"2026-03-20T10:01:10Z"}
+{"type":"tool_use","name":"Bash","input":{"command":"pytest"},"timestamp":"2026-03-20T10:01:20Z"}
+{"type":"tool_result","content":"3 passed, 2 failed"}
+{"role":"user","content":"That's too many failures, let me handle this","timestamp":"2026-03-20T10:01:30Z"}
+{"role":"assistant","content":"OK, I'll stop here.","timestamp":"2026-03-20T10:01:35Z"}

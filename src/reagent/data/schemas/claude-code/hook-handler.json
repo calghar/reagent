@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Claude Code Hook Handler",
+  "type": "object",
+  "required": ["type"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["command", "http", "prompt", "agent"],
+      "description": "Hook handler type"
+    },
+    "if": {
+      "type": "string",
+      "description": "Permission rule syntax condition"
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Timeout in milliseconds"
+    },
+    "statusMessage": {
+      "type": "string",
+      "description": "Status message displayed during hook execution"
+    },
+    "once": {
+      "type": "boolean",
+      "description": "Run only once per session"
+    },
+    "command": {
+      "type": "string",
+      "description": "Shell command to execute (command type)"
+    },
+    "async": {
+      "type": "boolean",
+      "description": "Run command asynchronously (command type)"
+    },
+    "shell": {
+      "type": "string",
+      "enum": ["bash", "powershell"],
+      "description": "Shell to use (command type)"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Webhook URL (http type)"
+    },
+    "headers": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "HTTP headers (http type)"
+    },
+    "allowedEnvVars": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Allowed environment variables (http type)"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Prompt text (prompt/agent type)"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model to use (prompt/agent type)"
+    }
+  },
+  "additionalProperties": false
+}
