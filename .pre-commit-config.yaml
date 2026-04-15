@@ -40,25 +40,4 @@ repos:
         args: [--strict, --ignore-missing-imports, src/reagent]
         pass_filenames: false
 
-  - repo: local
-    hooks:
-      - id: prettier-dashboard
-        name: Prettier (dashboard)
-        entry: bash -c 'cd dashboard && ./node_modules/.bin/prettier --write "${@#dashboard/}"' --
-        language: system
-        files: ^dashboard/src/.*\.(ts|tsx|css|json)$
 
-      - id: eslint-dashboard
-        name: ESLint (dashboard)
-        entry: bash -c 'cd dashboard && npm run lint'
-        language: system
-        files: ^dashboard/src/.*\.(ts|tsx)$
-        pass_filenames: false
-
-      - id: tsc-dashboard
-        name: TypeScript check (dashboard)
-        entry: bash -c 'cd dashboard && npm run typecheck'
-        language: system
-        files: ^dashboard/.*\.(ts|tsx)$
-        pass_filenames: false
-        stages: [manual]

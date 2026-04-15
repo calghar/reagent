@@ -50,11 +50,11 @@ Full package scope for Python reviews:
 
 Rate each issue from 0-100:
 
-- **0-25**: Likely false positive or pre-existing issue
-- **26-50**: Minor nitpick not explicitly in CLAUDE.md
-- **51-75**: Valid but low-impact issue
-- **76-90**: Important issue requiring attention
-- **91-100**: Critical bug or explicit CLAUDE.md violation
+- **1**: Likely false positive or pre-existing issue
+- **2**: Minor nitpick not explicitly in CLAUDE.md
+- **3**: Valid but low-impact issue
+- **4**: Important issue requiring attention
+- **5**: Critical bug or explicit CLAUDE.md violation
 
 **Only report issues with confidence ≥ 80**
 
@@ -67,7 +67,7 @@ Start by listing what you're reviewing. For each high-confidence issue provide:
 - Specific CLAUDE.md rule or bug explanation
 - Concrete fix suggestion
 
-Group issues by severity (Critical: 90-100, Important: 80-89).
+Group issues by severity (Critical: 5, Important: 4).
 
 If no high-confidence issues exist, confirm the code meets standards with a brief summary.
 

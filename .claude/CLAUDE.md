@@ -75,6 +75,7 @@ Python 3.13 CLI (`src/reagent/cli/`) backed by 14 packages:
 - httpx for HTTP (no vendor SDKs)
 - ruff line-length 88, mypy strict with pydantic plugin
 - Configurable constants via `TuningConfig` in config.py, accessed through `get_tuning()` from `_tuning.py`
+- CLI must work independenlty from the backend and it must be possible to just use the CLI.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence

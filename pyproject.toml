@@ -33,7 +33,6 @@ dependencies = [
 
 [project.optional-dependencies]
 code-intel = ["mcp>=1.0"]
-dashboard = ["starlette>=0.40", "uvicorn>=0.30", "aiosqlite>=0.20"]
 docs = [
     "mkdocs-material>=9.5",
 ]
@@ -88,18 +87,6 @@ warn_required_dynamic_aliases = true
 
 [[tool.mypy.overrides]]
 module = ["mcp", "mcp.*"]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["aiosqlite", "aiosqlite.*"]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["starlette", "starlette.*"]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["uvicorn", "uvicorn.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
