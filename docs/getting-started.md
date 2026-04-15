@@ -13,20 +13,8 @@ cd reagent
 # Core CLI only
 uv sync
 
-# With dashboard UI
-uv sync --extra dashboard
-
-# With dashboard + dev tools
-uv sync --extra dev --extra dashboard
-```
-
-If you plan to use the web dashboard, build the React frontend once after syncing:
-
-```bash
-cd dashboard
-npm install
-npm run build
-cd ..
+# With dev tools
+uv sync --extra dev
 ```
 
 Then run reagent via:
@@ -39,7 +27,6 @@ uv run reagent --help
 
 ```bash
 uv sync --extra code-intel      # MCP integration
-uv sync --extra dashboard       # Web dashboard
 uv sync --extra dev             # Dev tools (pytest, ruff, mypy)
 ```
 
@@ -47,7 +34,6 @@ uv sync --extra dev             # Dev tools (pytest, ruff, mypy)
 
 ```bash
 pip install reagent
-pip install "reagent[dashboard]"
 ```
 
 ## LLM Configuration
@@ -80,7 +66,6 @@ For persistent configuration, create `~/.reagent/config.yaml`:
 llm:
   provider: anthropic
   model: claude-sonnet-4-20250514
-  monthly_budget: 10.0   # USD — generation stops when exceeded
 ```
 
 See the [Configuration Reference](configuration.md) for all available settings and environment variables.
@@ -135,19 +120,12 @@ Detect languages, frameworks, and conventions:
 reagent analyze ./my-project
 ```
 
-### Create Assets
+### Get Suggestions
 
-Generate repo-aware Claude Code assets:
+Get actionable recommendations for improving your assets:
 
 ```bash
-reagent loop init                            # Auto-generate all assets (recommended)
-reagent init ./my-project                    # Smart defaults for one repo
-reagent baseline ~/Development               # Smart defaults for all repos
-reagent create agent --repo . --name reviewer  # Specific asset (LLM-powered)
-reagent regenerate .claude/agents/reviewer.md  # Improve existing asset
-reagent loop improve                         # Improve all below-threshold assets
-reagent loop review                          # Review pending changes
-reagent loop deploy                          # Deploy approved changes
+reagent suggest --repo ./my-project
 ```
 
 ### Security Scan
@@ -175,24 +153,13 @@ Run Reagent in CI pipelines with automatic quality gates:
 reagent ci --threshold 70   # Exit 1 if below 70, exit 2 if security issues
 ```
 
-Or use the [GitHub Action](ci-integration.md) for zero-config CI setup.
-
-### Web Dashboard
-
-Launch the web UI to view assets, evaluation trends, and loop control:
-
-```bash
-reagent dashboard            # Opens browser at http://localhost:8080
-```
-
-See the [Dashboard guide](dashboard.md) for Docker deployment and full feature documentation.
+See the [CI Integration Guide](ci-integration.md) for setup instructions with GitLab CI, Jenkins, and other providers.
 
 ### Evaluate Quality
 
 Score your assets based on actual session telemetry:
 
 ```bash
-reagent hooks install     # Install telemetry hooks first
 reagent evaluate --repo ./my-project
 ```
 

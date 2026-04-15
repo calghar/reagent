@@ -8,6 +8,7 @@ Reagent stores its configuration at `~/.reagent/config.yaml`. If this file does 
 ~/.reagent/
 ├── config.yaml          # Main configuration
 ├── catalog.jsonl         # Asset catalog
+├── instincts.json        # Extracted instincts (learned patterns)
 ├── events.jsonl          # Telemetry event log
 ├── reagent.db            # SQLite database (evaluations, loops, costs)
 ├── reagent.log           # Application log
@@ -73,6 +74,7 @@ Controls Claude Code session event collection used for evaluation and instinct e
 telemetry:
   enabled: true
   event_store: ~/.reagent/events.jsonl
+  claude_projects_path: ~/.claude/projects
   hash_file_paths: false
   exclude_content: false
   retention_days: 90
@@ -82,6 +84,7 @@ telemetry:
 |---|---|---|---|
 | `enabled` | bool | `true` | Enable telemetry event collection |
 | `event_store` | path | `~/.reagent/events.jsonl` | Event log file location |
+| `claude_projects_path` | path | `~/.claude/projects` | Claude Code session data directory. Override when sessions are stored in a non-default location. Also settable via `CLAUDE_PROJECTS_PATH` env var. |
 | `hash_file_paths` | bool | `false` | Hash file paths in events for privacy |
 | `exclude_content` | bool | `false` | Exclude file content from events |
 | `retention_days` | int | `90` | Days to retain events before pruning |
@@ -258,6 +261,8 @@ Environment variables override config file values. Set them in your shell profil
 | Variable | Description | Example |
 |---|---|---|
 | `REAGENT_DB_PATH` | SQLite database path override | `/path/to/reagent.db` |
+| `REAGENT_REPOS_PATH` | Host path to your repositories. **Required** for container deployments — mounted into the container at `/home/app/repos`. | `~/Development` |
+| `CLAUDE_PROJECTS_PATH` | Claude Code sessions directory for instinct extraction. Override when sessions are stored in a non-default location. | `~/.claude/projects` (default) |
 | `REAGENT_CORS_ORIGINS` | Comma-separated CORS allowed origins | `http://localhost:5173,http://localhost:3000` |
 
 ### CI

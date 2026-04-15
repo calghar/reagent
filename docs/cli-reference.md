@@ -70,35 +70,6 @@ reagent analyze ./my-project
 
 Outputs detected languages, frameworks, architecture style, test/lint configuration, CI setup, and an asset audit.
 
-### `reagent init REPO`
-
-Generate smart default assets based on repo analysis.
-
-```bash
-reagent init ./my-project
-```
-
-Analyzes the repo and proposes starter agents, skills, and rules tailored to the detected stack. Prompts for confirmation before writing.
-
-### `reagent baseline ROOT`
-
-Generate baseline `.claude` assets for all repos under a root directory.
-
-```bash
-reagent baseline ~/Development
-reagent baseline ~/Development --max-depth 3
-reagent baseline ~/Development --dry-run
-```
-
-Discovers repositories by looking for project markers (`.git`, `pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`, `Gemfile`, `Package.swift`) and generates smart default assets for each.
-
-**Options:**
-
-| Flag | Description |
-| --- | --- |
-| `--max-depth INT` | Max directory depth to search for repos (default: 2) |
-| `--dry-run` | Show what would be generated without writing files |
-
 ### `reagent extract-patterns`
 
 Scan all cataloged assets and extract reusable patterns.
@@ -122,60 +93,6 @@ reagent apply-pattern ci-deploy --repo ./my-project
 | Flag | Description |
 | --- | --- |
 | `--repo PATH` | Target repository (default: current directory) |
-
-## Creation
-
-### `reagent create TYPE`
-
-Create a new Claude Code asset with repo-aware generation.
-
-```bash
-reagent create agent --repo . --name code-reviewer
-reagent create skill --repo . --from ci-deploy
-reagent create hook --repo . --from-outline outline.md
-reagent create command --interactive
-```
-
-**Arguments:**
-
-| Argument | Values |
-| --- | --- |
-| `TYPE` | `agent`, `skill`, `hook`, `command`, `rule` |
-
-**Options:**
-
-| Flag | Description |
-| --- | --- |
-| `--repo PATH` | Target repository (default: current directory) |
-| `--name NAME` | Asset name |
-| `--from PATTERN` | Pattern name to use as template |
-| `--from-outline PATH` | Outline file (use `-` for stdin) |
-| `--interactive` | Interactive field-by-field mode |
-
-### `reagent regenerate PATH`
-
-Regenerate an existing asset using evaluation feedback and instincts.
-
-```bash
-reagent regenerate .claude/agents/code-reviewer.md
-reagent regenerate .claude/agents/code-reviewer.md --repo .
-```
-
-**Options:**
-
-| Flag | Description |
-| --- | --- |
-| `--repo PATH` | Repository path (default: current directory) |
-
-### `reagent specialize REPO`
-
-Apply global assets with repo-specific adaptation.
-
-```bash
-reagent specialize ./my-project
-```
-
-Reads global patterns and adapts them to the repo's languages, frameworks, and conventions.
 
 ### `reagent validate PATH`
 
@@ -364,139 +281,6 @@ Rollback an asset to its historically best-quality version.
 reagent rollback-best my-project:agent:reviewer
 ```
 
-### `reagent dashboard`
-
-Start the Reagent web dashboard.
-
-```bash
-reagent dashboard
-reagent dashboard --port 8080
-reagent dashboard --no-browser
-```
-
-Opens a browser at `http://localhost:8080` showing asset health, evaluation trends,
-generation costs, provider status, and loop control.
-
-**Options:**
-
-| Flag | Description |
-| --- | --- |
-| `--port INT` | Port to listen on (default: 8080) |
-| `--host TEXT` | Host to bind to (default: 0.0.0.0) |
-| `--docker` | Run via Docker Compose |
-| `--no-browser` | Don't open browser automatically |
-
-## Autonomous Loops
-
-### `reagent loop init`
-
-Run the init loop: generate assets from scratch for the repo.
-
-```bash
-reagent loop init
-reagent loop init --threshold 85 --max-iterations 3
-reagent loop init --no-approval   # Auto-deploy without review
-```
-
-**Options:**
-
-| Flag | Description |
-| --- | --- |
-| `--max-iterations N` | Maximum loop iterations (default: 5) |
-| `--max-cost FLOAT` | Maximum spend in USD (default: 2.0) |
-| `--target FLOAT` | Target quality score 0–100 (default: 80.0) |
-| `--no-approval` | Skip human review step (auto-deploy) |
-| `--repo PATH` | Repository path (default: current directory) |
-
-### `reagent loop improve`
-
-Run the improve loop: regenerate below-threshold existing assets.
-
-```bash
-reagent loop improve
-reagent loop improve --threshold 70 --max-iterations 3
-```
-
-**Options:**
-
-| Flag | Description |
-| --- | --- |
-| `--threshold FLOAT` | Score threshold below which assets are regenerated (default: 80.0) |
-| `--max-iterations N` | Maximum loop iterations (default: 5) |
-| `--repo PATH` | Repository path (default: current directory) |
-
-### `reagent loop watch`
-
-Run the watch loop: monitor repo for changes and regenerate assets.
-
-```bash
-reagent loop watch
-reagent loop watch --interval 60
-```
-
-**Options:**
-
-| Flag | Description |
-| --- | --- |
-| `--interval FLOAT` | Poll interval in seconds (default: 30.0) |
-| `--repo PATH` | Repository path (default: current directory) |
-
-### `reagent loop stop`
-
-Activate the kill switch to stop any running loop.
-
-```bash
-reagent loop stop
-```
-
-### `reagent loop status`
-
-Show the most recent loop's state.
-
-```bash
-reagent loop status
-```
-
-### `reagent loop review`
-
-Show pending assets awaiting approval.
-
-```bash
-reagent loop review
-```
-
-### `reagent loop deploy`
-
-Write approved asset content to disk.
-
-```bash
-reagent loop deploy
-```
-
-### `reagent loop discard`
-
-Reject pending assets without writing to disk.
-
-```bash
-reagent loop discard
-```
-
-### `reagent loop diff`
-
-Show unified diff for a pending asset vs its previous version.
-
-```bash
-reagent loop diff
-```
-
-### `reagent loop history`
-
-Show the last 10 loop runs.
-
-```bash
-reagent loop history
-```
-
 ## CI Integration
 
 ### `reagent ci`
@@ -585,47 +369,7 @@ Restore bundled default schemas.
 reagent schema reset
 ```
 
-## Telemetry Hooks
-
-### `reagent hooks install`
-
-Install Reagent telemetry hooks into `~/.claude/settings.json`.
-
-```bash
-reagent hooks install
-```
-
-### `reagent hooks uninstall`
-
-Remove Reagent hooks from `~/.claude/settings.json`.
-
-```bash
-reagent hooks uninstall
-```
-
-### `reagent hooks status`
-
-Show status of Reagent telemetry hooks.
-
-```bash
-reagent hooks status
-```
-
-### `reagent hooks install-prompt-hooks`
-
-Install prompt hooks for quality gates (convention checking, review summaries).
-
-```bash
-reagent hooks install-prompt-hooks
-```
-
-### `reagent hooks install-agent-hooks`
-
-Install agent hooks for automated session evaluation.
-
-```bash
-reagent hooks install-agent-hooks
-```
+## Telemetry
 
 ### `reagent profile`
 
