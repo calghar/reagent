@@ -8,8 +8,6 @@ import yaml
 
 from reagent._tuning import get_tuning
 from reagent.config import (
-    ApiTuning,
-    BudgetTuning,
     CacheTuning,
     EvaluationTuning,
     InstinctTuning,
@@ -31,11 +29,6 @@ class TestTuningModels:
         assert t.default_top_k == 5
         assert t.trust_tier_weights == {"managed": 0.8, "workspace": 0.6}
 
-    def test_budget_defaults(self) -> None:
-        t = BudgetTuning()
-        assert t.warning_ratio == 0.8
-        assert t.exceeded_ratio == 1.0
-
     def test_evaluation_defaults(self) -> None:
         t = EvaluationTuning()
         assert t.max_invocations_per_week == 5.0
@@ -48,13 +41,6 @@ class TestTuningModels:
         assert t.circuit_breaker_threshold == 3
         assert t.circuit_breaker_recovery_seconds == 300
 
-    def test_api_defaults(self) -> None:
-        t = ApiTuning()
-        assert t.default_page_size == 20
-        assert t.max_page_size == 200
-        assert t.default_eval_limit == 500
-        assert t.max_loop_results == 100
-
     def test_cache_defaults(self) -> None:
         t = CacheTuning()
         assert t.default_max_age_days == 7
@@ -62,21 +48,17 @@ class TestTuningModels:
     def test_tuning_config_aggregates_all(self) -> None:
         tc = TuningConfig()
         assert isinstance(tc.instinct, InstinctTuning)
-        assert isinstance(tc.budget, BudgetTuning)
         assert isinstance(tc.evaluation, EvaluationTuning)
         assert isinstance(tc.router, RouterTuning)
-        assert isinstance(tc.api, ApiTuning)
         assert isinstance(tc.cache, CacheTuning)
 
     def test_custom_values_override_defaults(self) -> None:
         tc = TuningConfig(
             instinct=InstinctTuning(category_match_boost=2.0),
-            budget=BudgetTuning(warning_ratio=0.5),
         )
         assert tc.instinct.category_match_boost == 2.0
         # Other instinct fields keep defaults
         assert tc.instinct.recency_half_life_days == 180.0
-        assert tc.budget.warning_ratio == 0.5
 
 
 class TestReagentConfigTuning:
@@ -92,7 +74,6 @@ class TestReagentConfigTuning:
         data = {
             "tuning": {
                 "instinct": {"category_match_boost": 3.0, "default_top_k": 10},
-                "budget": {"warning_ratio": 0.6},
                 "router": {"circuit_breaker_threshold": 5},
             }
         }
@@ -102,7 +83,6 @@ class TestReagentConfigTuning:
         assert cfg.tuning.instinct.default_top_k == 10
         # Untouched fields keep defaults
         assert cfg.tuning.instinct.confidence_cap == 0.8
-        assert cfg.tuning.budget.warning_ratio == 0.6
         assert cfg.tuning.router.circuit_breaker_threshold == 5
         assert cfg.tuning.evaluation.staleness_window_days == 90.0
 

@@ -562,63 +562,11 @@ class TestTelemetryContext:
         assert format_instincts_for_prompt([]) == ""
 
 
-class TestCreatorWiring:
-    def test_create_asset_with_use_telemetry_flag(self, tmp_path: Path) -> None:
-        """Verify create_asset accepts use_telemetry parameter."""
-        from reagent.creation.creator import create_asset
-
-        repo = tmp_path / "repo"
-        repo.mkdir()
-        (repo / "pyproject.toml").write_text('[project]\nname = "test"\n')
-
-        # Should work without errors even if no telemetry data
-        draft = create_asset(
-            "rule",
-            repo,
-            name="test-rule",
-            no_llm=True,
-            use_telemetry=True,
-        )
-        assert draft.name == "test-rule"
-        assert draft.content
-
-    def test_regenerate_asset(self, tmp_path: Path) -> None:
-        """Verify regenerate_asset reads existing asset."""
-        from reagent.creation.creator import regenerate_asset
-
-        repo = tmp_path / "repo"
-        agents_dir = repo / ".claude" / "agents"
-        agents_dir.mkdir(parents=True)
-
-        asset_file = agents_dir / "test.md"
-        asset_file.write_text(
-            "---\n"
-            "name: test\n"
-            "description: Test agent\n"
-            "tools:\n"
-            "  - Read\n"
-            "---\n"
-            "# Test Agent\n\n"
-            "Does testing.\n"
-        )
-
-        # Will fall back to template since no LLM
-        draft = regenerate_asset(asset_file, repo)
-        assert draft.name == "test"
-        assert draft.content
-
-    def test_regenerate_missing_file(self, tmp_path: Path) -> None:
-        with pytest.raises(FileNotFoundError):
-            from reagent.creation.creator import regenerate_asset
-
-            regenerate_asset(tmp_path / "nonexistent.md", tmp_path)
-
-
 class TestSuggestApply:
     def test_apply_dry_run(self, tmp_path: Path) -> None:
         """Dry run does not write files."""
         _ = tmp_path
-        from reagent.creation.suggest import ApplyResult
+        from reagent.evaluation.suggest import ApplyResult
 
         result = ApplyResult(applied=2, skipped=1, paths=["a", "b"])
         assert result.applied == 2
@@ -628,7 +576,7 @@ class TestSuggestApply:
         """apply_suggestions creates files from draft content."""
         from unittest.mock import patch
 
-        from reagent.creation.suggest import (
+        from reagent.evaluation.suggest import (
             Suggestion,
             SuggestionReport,
             apply_suggestions,
@@ -651,7 +599,7 @@ class TestSuggestApply:
         )
 
         with patch(
-            "reagent.creation.suggest.suggest_for_repo",
+            "reagent.evaluation.suggest.suggest_for_repo",
             return_value=mock_report,
         ):
             result = apply_suggestions(tmp_path)
@@ -664,7 +612,7 @@ class TestSuggestApply:
     def test_apply_skips_no_draft(self, tmp_path: Path) -> None:
         from unittest.mock import patch
 
-        from reagent.creation.suggest import (
+        from reagent.evaluation.suggest import (
             Suggestion,
             SuggestionReport,
             apply_suggestions,
@@ -684,7 +632,7 @@ class TestSuggestApply:
         )
 
         with patch(
-            "reagent.creation.suggest.suggest_for_repo",
+            "reagent.evaluation.suggest.suggest_for_repo",
             return_value=mock_report,
         ):
             result = apply_suggestions(tmp_path)

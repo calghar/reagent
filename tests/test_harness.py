@@ -234,15 +234,19 @@ class TestCodexAdapter:
         assert 'description = "A test agent"' in hfile.content
         assert '"Read"' in hfile.content
 
-    def test_codex_rule_appends_to_agents_md(self) -> None:
-        """RULE → AGENTS.md with mode=append_section."""
-        asset = _make_rule("my-rule")
+    @pytest.mark.parametrize(
+        "asset",
+        [
+            pytest.param(_make_rule("my-rule"), id="rule"),
+            pytest.param(_make_claude_md(), id="claude_md"),
+        ],
+    )
+    def test_codex_appends_to_agents_md(self, asset: GeneratedAsset) -> None:
+        """RULE/CLAUDE_MD → AGENTS.md with mode=append_section."""
         files = adapt_to_codex(asset)
-
         assert len(files) == 1
-        hfile = files[0]
-        assert hfile.path == "AGENTS.md"
-        assert hfile.mode == "append_section"
+        assert files[0].path == "AGENTS.md"
+        assert files[0].mode == "append_section"
 
     def test_codex_rule_section_contains_body(self) -> None:
         """Codex rule AGENTS.md section should include the rule body."""
@@ -261,14 +265,6 @@ class TestCodexAdapter:
         asset = _make_hook()
         files = adapt_to_codex(asset)
         assert files == []
-
-    def test_codex_claude_md_appends_agents_md(self) -> None:
-        """CLAUDE_MD → AGENTS.md section with mode=append_section."""
-        asset = _make_claude_md()
-        files = adapt_to_codex(asset)
-        assert len(files) == 1
-        assert files[0].path == "AGENTS.md"
-        assert files[0].mode == "append_section"
 
 
 class TestOpenCodeAdapter:
@@ -333,47 +329,49 @@ class TestOpenCodeAdapter:
 class TestDetectHarness:
     """Tests for detect_harness()."""
 
-    def test_detect_harness_claude_code(self, tmp_path: Path) -> None:
-        """Repo with .claude/ → CLAUDE_CODE."""
-        (tmp_path / ".claude").mkdir()
-        result = detect_harness(tmp_path)
-        assert result == HarnessFormat.CLAUDE_CODE
-
-    def test_detect_harness_cursor_dir(self, tmp_path: Path) -> None:
-        """Repo with .cursor/ → CURSOR."""
-        (tmp_path / ".cursor").mkdir()
-        result = detect_harness(tmp_path)
-        assert result == HarnessFormat.CURSOR
-
-    def test_detect_harness_cursor_rules_file(self, tmp_path: Path) -> None:
-        """Repo with .cursorrules file → CURSOR."""
-        (tmp_path / ".cursorrules").write_text("# rules")
-        result = detect_harness(tmp_path)
-        assert result == HarnessFormat.CURSOR
-
-    def test_detect_harness_codex(self, tmp_path: Path) -> None:
-        """Repo with codex.md → CODEX."""
-        (tmp_path / "codex.md").write_text("# Codex")
-        result = detect_harness(tmp_path)
-        assert result == HarnessFormat.CODEX
-
-    def test_detect_harness_opencode(self, tmp_path: Path) -> None:
-        """Repo with opencode.md → OPENCODE."""
-        (tmp_path / "opencode.md").write_text("# OpenCode")
-        result = detect_harness(tmp_path)
-        assert result == HarnessFormat.OPENCODE
+    @pytest.mark.parametrize(
+        ("marker_name", "marker_content", "expected"),
+        [
+            pytest.param(".claude", None, HarnessFormat.CLAUDE_CODE, id="claude_dir"),
+            pytest.param(".cursor", None, HarnessFormat.CURSOR, id="cursor_dir"),
+            pytest.param(
+                ".cursorrules",
+                "# rules",
+                HarnessFormat.CURSOR,
+                id="cursorrules_file",
+            ),
+            pytest.param("codex.md", "# Codex", HarnessFormat.CODEX, id="codex"),
+            pytest.param(
+                "opencode.md",
+                "# OpenCode",
+                HarnessFormat.OPENCODE,
+                id="opencode",
+            ),
+        ],
+    )
+    def test_detect_harness_by_marker(
+        self,
+        tmp_path: Path,
+        marker_name: str,
+        marker_content: str | None,
+        expected: HarnessFormat,
+    ) -> None:
+        """Known harness markers → correct HarnessFormat."""
+        if marker_content is None:
+            (tmp_path / marker_name).mkdir()
+        else:
+            (tmp_path / marker_name).write_text(marker_content)
+        assert detect_harness(tmp_path) == expected
 
     def test_detect_harness_default(self, tmp_path: Path) -> None:
         """Empty repo → CLAUDE_CODE default."""
-        result = detect_harness(tmp_path)
-        assert result == HarnessFormat.CLAUDE_CODE
+        assert detect_harness(tmp_path) == HarnessFormat.CLAUDE_CODE
 
     def test_detect_harness_priority_claude_over_cursor(self, tmp_path: Path) -> None:
         """When both .claude/ and .cursor/ exist, Claude Code wins (priority order)."""
         (tmp_path / ".claude").mkdir()
         (tmp_path / ".cursor").mkdir()
-        result = detect_harness(tmp_path)
-        assert result == HarnessFormat.CLAUDE_CODE
+        assert detect_harness(tmp_path) == HarnessFormat.CLAUDE_CODE
 
 
 class TestGenerateAgentsMd:
@@ -397,23 +395,28 @@ class TestGenerateAgentsMd:
         assert "## Workflows" in output
         assert "## Rules" in output
 
-    def test_agents_md_contains_agent_name(self) -> None:
-        """Agent name should appear in the output."""
+    @pytest.mark.parametrize(
+        ("asset", "expected_text"),
+        [
+            pytest.param(_make_agent("my-worker"), "my-worker", id="agent"),
+            pytest.param(_make_skill("my-skill"), "my-skill", id="skill"),
+            pytest.param(
+                _make_rule("type-rule"),
+                "Use type hints on all functions.",
+                id="rule",
+            ),
+        ],
+    )
+    def test_agents_md_contains_asset_content(
+        self, asset: GeneratedAsset, expected_text: str
+    ) -> None:
+        """Generated agents.md includes the relevant asset content."""
         profile = _make_profile()
-        output = generate_agents_md([_make_agent("my-worker")], [], [], profile)
-        assert "my-worker" in output
-
-    def test_agents_md_contains_skill_name(self) -> None:
-        """Skill name should appear in the output."""
-        profile = _make_profile()
-        output = generate_agents_md([], [_make_skill("my-skill")], [], profile)
-        assert "my-skill" in output
-
-    def test_agents_md_contains_rule_body(self) -> None:
-        """Rule body should be embedded in the Rules section."""
-        profile = _make_profile()
-        output = generate_agents_md([], [], [_make_rule("type-rule")], profile)
-        assert "Use type hints on all functions." in output
+        agents = [asset] if asset.asset_type == AssetType.AGENT else []
+        skills = [asset] if asset.asset_type == AssetType.SKILL else []
+        rules = [asset] if asset.asset_type == AssetType.RULE else []
+        output = generate_agents_md(agents, skills, rules, profile)
+        assert expected_text in output
 
     def test_agents_md_empty_lists(self) -> None:
         """generate_agents_md should not raise with empty asset lists."""
@@ -423,17 +426,18 @@ class TestGenerateAgentsMd:
         assert "_No agents defined._" in output
         assert "_No skills defined._" in output
 
-    def test_agents_md_profile_name_appears(self) -> None:
-        """Repo name from profile should appear in the output."""
+    @pytest.mark.parametrize(
+        "expected_text",
+        [
+            pytest.param("test-repo", id="repo_name"),
+            pytest.param("Python", id="primary_language"),
+        ],
+    )
+    def test_agents_md_profile_info_appears(self, expected_text: str) -> None:
+        """Profile metadata appears in generated agents.md."""
         profile = _make_profile()
         output = generate_agents_md([], [], [], profile)
-        assert "test-repo" in output
-
-    def test_agents_md_profile_language_appears(self) -> None:
-        """Primary language from profile should appear in the output."""
-        profile = _make_profile()
-        output = generate_agents_md([], [], [], profile)
-        assert "Python" in output
+        assert expected_text in output
 
 
 class TestAdaptDispatch:

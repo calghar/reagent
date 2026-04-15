@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -71,94 +72,53 @@ def _make_asset_metrics(
     return m
 
 
-def _make_quality_report(metrics: list[MagicMock]) -> MagicMock:
-    report = MagicMock()
-    report.asset_metrics = metrics
-    return report
-
-
-def _make_scan_report() -> MagicMock:
-    report = MagicMock()
-    report.risk_score = 0.0
-    return report
-
-
 class TestCIResult:
-    def test_ci_result_passed_when_all_above_threshold(self) -> None:
-        assets = [_make_asset_result(score=80.0, threshold=60.0)]
-        result = _make_ci_result(overall_score=80.0, passed=True, asset_results=assets)
-        assert result.passed is True
-        assert result.exit_code == 0
-
-    def test_ci_result_fails_when_below_threshold(self) -> None:
-        assets = [_make_asset_result(score=40.0, threshold=60.0)]
-        assets[0]["passed"] = False
+    @pytest.mark.parametrize(
+        ("score", "threshold", "passed", "exit_code"),
+        [
+            pytest.param(80.0, 60.0, True, 0, id="above_threshold"),
+            pytest.param(40.0, 60.0, False, 1, id="below_threshold"),
+        ],
+    )
+    def test_ci_result_pass_and_fail(
+        self,
+        score: float,
+        threshold: float,
+        passed: bool,
+        exit_code: int,
+    ) -> None:
+        assets = [_make_asset_result(score=score, threshold=threshold)]
+        if not passed:
+            assets[0]["passed"] = False
         result = _make_ci_result(
-            overall_score=40.0, passed=False, asset_results=assets, exit_code=1
+            overall_score=score,
+            passed=passed,
+            asset_results=assets,
+            exit_code=exit_code,
         )
-        assert result.passed is False
-        assert result.exit_code == 1
+        assert result.passed is passed
+        assert result.exit_code == exit_code
 
-    def test_ci_result_exit_code_0_on_pass(self) -> None:
-        result = _make_ci_result(passed=True, exit_code=0)
-        assert result.exit_code == 0
+    @pytest.mark.parametrize(
+        ("passed", "security_grade", "exit_code"),
+        [
+            pytest.param(True, "A", 0, id="pass"),
+            pytest.param(False, "A", 1, id="quality_fail"),
+            pytest.param(False, "F", 2, id="security_fail"),
+        ],
+    )
+    def test_exit_code_stored(
+        self, passed: bool, security_grade: str, exit_code: int
+    ) -> None:
+        result = _make_ci_result(
+            passed=passed, security_grade=security_grade, exit_code=exit_code
+        )
+        assert result.exit_code == exit_code
 
-    def test_ci_result_exit_code_1_on_quality_fail(self) -> None:
-        result = _make_ci_result(passed=False, exit_code=1)
-        assert result.exit_code == 1
-
-    def test_ci_result_exit_code_2_on_security_fail(self) -> None:
-        result = _make_ci_result(passed=False, security_grade="F", exit_code=2)
-        assert result.exit_code == 2
-
-    def test_exit_code_2_takes_priority_over_1(self) -> None:
-        # Security grade F and quality failure → exit code 2
+    def test_exit_code_security_takes_priority(self) -> None:
+        """Exit code 2 (security) takes priority over 1 (quality)."""
         assets = [_make_asset_result(score=40.0, threshold=60.0)]
         assets[0]["passed"] = False
-        exit_code = _determine_exit_code(assets, "F", security_enabled=True)
-        assert exit_code == 2
-
-    def test_security_grade_passes_c_or_better(self) -> None:
-        assert _security_grade_passes("A") is True
-        assert _security_grade_passes("B") is True
-        assert _security_grade_passes("C") is True
-        assert _security_grade_passes("D") is False
-        assert _security_grade_passes("F") is False
-
-    def test_compute_overall_score_empty(self) -> None:
-        assert _compute_overall_score([]) == 0.0
-
-    def test_compute_overall_score_average(self) -> None:
-        assets = [
-            _make_asset_result(score=80.0),
-            _make_asset_result(score=60.0),
-        ]
-        assert _compute_overall_score(assets) == pytest.approx(70.0)
-
-    def test_determine_passed_all_ok(self) -> None:
-        assets = [_make_asset_result(score=80.0)]
-        assert _determine_passed(assets, "A", security_enabled=True) is True
-
-    def test_determine_passed_security_disabled(self) -> None:
-        # Even with a bad grade, security disabled → pass
-        assets = [_make_asset_result(score=80.0)]
-        assert _determine_passed(assets, "F", security_enabled=False) is True
-
-    def test_build_asset_results_zero_score_treated_as_unknown(self) -> None:
-        metrics = [_make_asset_metrics(quality_score=0.0)]
-        results = _build_asset_results(metrics, threshold=60.0)
-        # Score == 0 is treated as "unknown" — should pass (not fail)
-        assert results[0]["passed"] is True
-
-    def test_ci_result_exit_code_security_takes_priority(self) -> None:
-        """Verify exit code 2 takes priority over exit code 1 on CIResult.
-
-        A result with both quality failure (would be exit code 1) AND security
-        grade F must carry exit code 2, demonstrating security takes priority.
-        """
-        assets = [_make_asset_result(score=40.0, threshold=60.0)]
-        assets[0]["passed"] = False
-        # _determine_exit_code should return 2 even though quality also fails
         exit_code = _determine_exit_code(assets, "F", security_enabled=True)
         result = _make_ci_result(
             overall_score=40.0,
@@ -170,92 +130,161 @@ class TestCIResult:
         assert result.exit_code == 2
         assert not _security_grade_passes(result.security_grade)
 
+    @pytest.mark.parametrize(
+        ("grade", "expected"),
+        [
+            pytest.param("A", True, id="A"),
+            pytest.param("B", True, id="B"),
+            pytest.param("C", True, id="C"),
+            pytest.param("D", False, id="D"),
+            pytest.param("F", False, id="F"),
+        ],
+    )
+    def test_security_grade_passes(self, grade: str, expected: bool) -> None:
+        assert _security_grade_passes(grade) is expected
+
+    @pytest.mark.parametrize(
+        ("assets_scores", "expected"),
+        [
+            pytest.param([], 0.0, id="empty"),
+            pytest.param([80.0, 60.0], 70.0, id="average"),
+        ],
+    )
+    def test_compute_overall_score(
+        self, assets_scores: list[float], expected: float
+    ) -> None:
+        assets = [_make_asset_result(score=s) for s in assets_scores]
+        assert _compute_overall_score(assets) == pytest.approx(expected)
+
+    @pytest.mark.parametrize(
+        ("security_grade", "security_enabled", "expected"),
+        [
+            pytest.param("A", True, True, id="all_ok"),
+            pytest.param("F", False, True, id="security_disabled"),
+        ],
+    )
+    def test_determine_passed(
+        self, security_grade: str, security_enabled: bool, expected: bool
+    ) -> None:
+        assets = [_make_asset_result(score=80.0)]
+        assert (
+            _determine_passed(
+                assets, security_grade, security_enabled=security_enabled
+            )
+            is expected
+        )
+
+    def test_build_asset_results_zero_score_treated_as_unknown(self) -> None:
+        metrics = [_make_asset_metrics(quality_score=0.0)]
+        results = _build_asset_results(metrics, threshold=60.0)
+        assert results[0]["passed"] is True
+
 
 class TestDriftDetector:
-    def test_detect_stale_references_missing_file(self, tmp_path: Path) -> None:
+    @pytest.mark.parametrize(
+        ("script_name", "create_script", "expect_stale"),
+        [
+            pytest.param("missing.sh", False, True, id="stale_reference"),
+            pytest.param("deploy.sh", True, False, id="valid_reference"),
+        ],
+    )
+    def test_stale_reference_detection(
+        self,
+        tmp_path: Path,
+        script_name: str,
+        create_script: bool,
+        expect_stale: bool,
+    ) -> None:
         claude_dir = tmp_path / ".claude" / "agents"
         claude_dir.mkdir(parents=True)
         agent_file = claude_dir / "test-agent.md"
         agent_file.write_text(
-            "---\nname: test-agent\n---\nRun `./scripts/missing.sh` to deploy.\n",
+            f"---\nname: test-agent\n---\n"
+            f"Run `./scripts/{script_name}` to deploy.\n",
             encoding="utf-8",
         )
-        # Do NOT create scripts/missing.sh
+        if create_script:
+            script = tmp_path / "scripts" / script_name
+            script.parent.mkdir(parents=True)
+            script.write_text("#!/bin/bash\necho deploy\n", encoding="utf-8")
 
         detector = DriftDetector()
         reports = detector._check_stale(tmp_path)
 
-        assert any(
-            r.drift_type == "stale" and "missing.sh" in r.details for r in reports
-        )
+        if expect_stale:
+            assert any(
+                r.drift_type == "stale" and script_name in r.details
+                for r in reports
+            )
+        else:
+            assert len(reports) == 0
 
-    def test_detect_no_drift_when_all_refs_exist(self, tmp_path: Path) -> None:
-        claude_dir = tmp_path / ".claude" / "agents"
-        claude_dir.mkdir(parents=True)
-        script = tmp_path / "scripts" / "deploy.sh"
-        script.parent.mkdir(parents=True)
-        script.write_text("#!/bin/bash\necho deploy\n", encoding="utf-8")
-
-        agent_file = claude_dir / "deploy-agent.md"
-        agent_file.write_text(
-            "---\nname: deploy-agent\n---\nRun `./scripts/deploy.sh` to deploy.\n",
-            encoding="utf-8",
-        )
-
-        detector = DriftDetector()
-        reports = detector._check_stale(tmp_path)
-        assert len(reports) == 0
-
-    def test_detect_missing_asset_for_ci_repo(self, tmp_path: Path) -> None:
-        # Repo with has_ci=True but no CI agent
+    @pytest.mark.parametrize(
+        ("agent_exists", "expected_count"),
+        [
+            pytest.param(False, 1, id="missing_ci_agent"),
+            pytest.param(True, 0, id="ci_agent_exists"),
+        ],
+    )
+    def test_check_missing_ci_asset(
+        self, tmp_path: Path, agent_exists: bool, expected_count: int
+    ) -> None:
         profile = MagicMock()
         profile.has_ci = True
         profile.has_api_routes = False
         profile.test_config.runner = None
 
-        detector = DriftDetector()
         agents_dir = tmp_path / ".claude" / "agents"
+        if agent_exists:
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "ci-agent.md").write_text(
+                "# CI Agent\n", encoding="utf-8"
+            )
+
+        detector = DriftDetector()
         reports = detector._check_missing_ci_asset(profile, agents_dir)
 
-        assert len(reports) == 1
-        assert reports[0].drift_type == "missing"
-        assert "CI" in reports[0].details or "ci" in reports[0].details.lower()
+        assert len(reports) == expected_count
+        if expected_count > 0:
+            assert reports[0].drift_type == "missing"
+            assert "CI" in reports[0].details or "ci" in reports[0].details.lower()
 
-    def test_detect_config_drift_missing_env_var(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    @pytest.mark.parametrize(
+        ("env_set", "expected_count"),
+        [
+            pytest.param(False, 1, id="missing_env_var"),
+            pytest.param(True, 0, id="env_var_set"),
+        ],
+    )
+    def test_config_drift(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        env_set: bool,
+        expected_count: int,
     ) -> None:
         _ = tmp_path
-        # Ensure env var is not set
-        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        if env_set:
+            monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+        else:
+            monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
         config_data = {"llm": {"provider": "anthropic"}}
-        with patch("reagent.ci.drift._load_reagent_config", return_value=config_data):
+        with patch(
+            "reagent.ci.drift._load_reagent_config", return_value=config_data
+        ):
             detector = DriftDetector()
             reports = detector._check_config_drift()
 
-        assert len(reports) == 1
-        assert reports[0].drift_type == "config_drift"
-        assert "ANTHROPIC_API_KEY" in reports[0].details
-
-    def test_detect_config_drift_no_drift_when_var_set(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        _ = tmp_path
-        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
-
-        config_data = {"llm": {"provider": "anthropic"}}
-        with patch("reagent.ci.drift._load_reagent_config", return_value=config_data):
-            detector = DriftDetector()
-            reports = detector._check_config_drift()
-
-        assert len(reports) == 0
+        assert len(reports) == expected_count
+        if expected_count == 1:
+            assert reports[0].drift_type == "config_drift"
+            assert "ANTHROPIC_API_KEY" in reports[0].details
 
     def test_detect_empty_repo_no_drift(self, tmp_path: Path) -> None:
         detector = DriftDetector()
-        # No .claude dir, no config file
         with patch("reagent.ci.drift._load_reagent_config", return_value=None):
             reports = detector.detect(tmp_path)
-        # May have missing reports from analyze_repo, but not stale or config
         stale = [r for r in reports if r.drift_type == "stale"]
         config_drift = [r for r in reports if r.drift_type == "config_drift"]
         assert stale == []
@@ -291,35 +320,6 @@ class TestDriftDetector:
         assert reports[0].drift_type == "missing"
         assert "pytest" in reports[0].details
 
-    def test_detect_no_missing_when_ci_agent_exists(self, tmp_path: Path) -> None:
-        profile = MagicMock()
-        profile.has_ci = True
-        agents_dir = tmp_path / ".claude" / "agents"
-        agents_dir.mkdir(parents=True)
-        (agents_dir / "ci-agent.md").write_text("# CI Agent\n", encoding="utf-8")
-
-        detector = DriftDetector()
-        reports = detector._check_missing_ci_asset(profile, agents_dir)
-        assert len(reports) == 0
-
-    def test_drift_detector_reports_stale_asset(self, tmp_path: Path) -> None:
-        """Verify drift is detected when an asset references a non-existent file."""
-        claude_dir = tmp_path / ".claude" / "agents"
-        claude_dir.mkdir(parents=True)
-        agent_file = claude_dir / "broken-agent.md"
-        agent_file.write_text(
-            "---\nname: broken-agent\n---\nRun `./scripts/gone.sh` for setup.\n",
-            encoding="utf-8",
-        )
-        # scripts/gone.sh does NOT exist → stale reference
-
-        detector = DriftDetector()
-        reports = detector._check_stale(tmp_path)
-
-        stale = [r for r in reports if r.drift_type == "stale"]
-        assert len(stale) >= 1, "Expected at least one stale-reference report"
-        assert any("gone.sh" in r.details for r in stale)
-
 
 class TestCIReporter:
     def _passing_result(self) -> CIResult:
@@ -346,25 +346,29 @@ class TestCIReporter:
             exit_code=1,
         )
 
-    def test_format_check_output_passing(self) -> None:
+    @pytest.mark.parametrize(
+        ("use_passing", "expected_strings"),
+        [
+            pytest.param(
+                True,
+                ["Reagent Asset Quality Check", "82", "test-runner", "\u2713"],
+                id="passing",
+            ),
+            pytest.param(
+                False,
+                ["add-feature", "55", "\u2717", "below threshold"],
+                id="failing",
+            ),
+        ],
+    )
+    def test_format_check_output(
+        self, use_passing: bool, expected_strings: list[str]
+    ) -> None:
         reporter = CIReporter()
-        result = self._passing_result()
+        result = self._passing_result() if use_passing else self._failing_result()
         output = reporter.format_check_output(result)
-
-        assert "Reagent Asset Quality Check" in output
-        assert "82" in output
-        assert "test-runner" in output
-        assert "\u2713" in output  # checkmark
-
-    def test_format_check_output_failing(self) -> None:
-        reporter = CIReporter()
-        result = self._failing_result()
-        output = reporter.format_check_output(result)
-
-        assert "add-feature" in output
-        assert "55" in output
-        assert "\u2717" in output  # cross
-        assert "below threshold" in output
+        for s in expected_strings:
+            assert s in output
 
     def test_format_check_output_with_drift(self) -> None:
         reporter = CIReporter()
@@ -383,7 +387,7 @@ class TestCIReporter:
         assert "Drift" in output
         assert "old.sh" in output
 
-    def test_format_pr_comment_contains_table(self) -> None:
+    def test_format_pr_comment_passing(self) -> None:
         reporter = CIReporter()
         result = self._passing_result()
         comment = reporter.format_pr_comment(result)
@@ -393,6 +397,9 @@ class TestCIReporter:
         assert "| Type |" in comment
         assert "test-runner" in comment
         assert "agent" in comment
+        assert "82" in comment
+        assert "Security" in comment
+        assert "B" in comment
 
     def test_format_pr_comment_contains_suggestions(self) -> None:
         reporter = CIReporter()
@@ -402,33 +409,27 @@ class TestCIReporter:
         assert "Suggestions" in comment
         assert "add-feature" in comment
 
-    def test_format_pr_comment_overall_score(self) -> None:
+    @pytest.mark.parametrize(
+        ("use_passing", "expected_count"),
+        [
+            pytest.param(True, 0, id="passing_empty"),
+            pytest.param(False, 1, id="failing_has_annotations"),
+        ],
+    )
+    def test_format_github_annotations(
+        self, use_passing: bool, expected_count: int
+    ) -> None:
         reporter = CIReporter()
-        result = self._passing_result()
-        comment = reporter.format_pr_comment(result)
-
-        assert "82" in comment
-        assert "Security" in comment
-        assert "B" in comment
-
-    def test_format_github_annotations_failing(self) -> None:
-        reporter = CIReporter()
-        result = self._failing_result()
+        result = self._passing_result() if use_passing else self._failing_result()
         annotations = reporter.format_github_annotations(result)
 
-        assert len(annotations) == 1
-        ann = annotations[0]
-        assert ann["level"] == "error"
-        assert "add-feature" in ann["message"]
-        assert "55" in ann["message"]
-        assert "below threshold" in ann["message"]
-
-    def test_format_github_annotations_empty_when_passing(self) -> None:
-        reporter = CIReporter()
-        result = self._passing_result()
-        annotations = reporter.format_github_annotations(result)
-
-        assert annotations == []
+        assert len(annotations) == expected_count
+        if expected_count == 1:
+            ann = annotations[0]
+            assert ann["level"] == "error"
+            assert "add-feature" in ann["message"]
+            assert "55" in ann["message"]
+            assert "below threshold" in ann["message"]
 
     def test_format_pr_comment_drift_section(self) -> None:
         reporter = CIReporter()
@@ -450,12 +451,6 @@ class TestCIReporter:
 
 class TestCIRunner:
     def test_runner_check_mode_empty_repo(self, tmp_path: Path) -> None:
-        """Runner returns a passing result when the repo contains no assets.
-
-        Uses a real empty directory — no mocks needed because evaluate_repo
-        returns an empty report for an uncatalogued repo, scan_directory finds
-        nothing to flag, and DriftDetector finds no .claude directory.
-        """
         config = CIConfig(repo_path=tmp_path, mode=CIMode.CHECK)
         result = CIRunner().run(config)
 
@@ -463,58 +458,51 @@ class TestCIRunner:
         assert result.exit_code == 0
         assert result.asset_results == []
 
-    def test_runner_check_mode_passing(self, tmp_path: Path) -> None:
-        """Runner reports pass when evaluated assets are all above threshold.
-
-        Only _evaluate_assets is mocked (the heavy catalog+LLM evaluation);
-        security and drift run for real on the empty tmp_path and return clean
-        results naturally.
-        """
-        assets = [_make_asset_result("good-agent", "agent", 80.0)]
-        with patch("reagent.ci.runner.CIRunner._evaluate_assets", return_value=assets):
-            config = CIConfig(repo_path=tmp_path, mode=CIMode.CHECK, threshold=60.0)
+    @pytest.mark.parametrize(
+        ("name", "asset_type", "score", "expect_passed", "expect_exit"),
+        [
+            pytest.param("good-agent", "agent", 80.0, True, 0, id="passing"),
+            pytest.param("bad-skill", "skill", 40.0, False, 1, id="failing"),
+        ],
+    )
+    def test_runner_check_mode(
+        self,
+        tmp_path: Path,
+        name: str,
+        asset_type: str,
+        score: float,
+        expect_passed: bool,
+        expect_exit: int,
+    ) -> None:
+        assets = [_make_asset_result(name, asset_type, score, threshold=60.0)]
+        if not expect_passed:
+            assets[0]["passed"] = False
+        with patch(
+            "reagent.ci.runner.CIRunner._evaluate_assets", return_value=assets
+        ):
+            config = CIConfig(
+                repo_path=tmp_path, mode=CIMode.CHECK, threshold=60.0
+            )
             result = CIRunner().run(config)
 
-        assert result.passed is True
-        assert result.exit_code == 0
-        assert result.overall_score == pytest.approx(80.0)
+        assert result.passed is expect_passed
+        assert result.exit_code == expect_exit
+        if expect_passed:
+            assert result.overall_score == pytest.approx(score)
 
-    def test_runner_check_mode_failing(self, tmp_path: Path) -> None:
-        """Runner reports failure when an asset is below threshold.
-
-        Only _evaluate_assets is mocked; security and drift use real empty-dir
-        implementations (both return clean results on tmp_path).
-        """
-        assets = [_make_asset_result("bad-skill", "skill", 40.0, threshold=60.0)]
-        assets[0]["passed"] = False
-        with patch("reagent.ci.runner.CIRunner._evaluate_assets", return_value=assets):
-            config = CIConfig(repo_path=tmp_path, mode=CIMode.CHECK, threshold=60.0)
-            result = CIRunner().run(config)
-
-        assert result.passed is False
-        assert result.exit_code == 1
-
-    def test_runner_autofix_writes_files(self, tmp_path: Path) -> None:
-        # Create a real asset file to auto-fix
-        claude_dir = tmp_path / ".claude" / "agents"
-        claude_dir.mkdir(parents=True)
-        agent_file = claude_dir / "bad-agent.md"
-        agent_file.write_text(
-            "---\nname: bad-agent\n---\nOld content.\n", encoding="utf-8"
-        )
-
+    def test_runner_autofix_returns_empty_without_creation(
+        self, tmp_path: Path
+    ) -> None:
         assets = [_make_asset_result("bad-agent", "agent", 40.0, threshold=60.0)]
         assets[0]["passed"] = False
 
-        mock_draft = MagicMock()
-        mock_draft.content = "---\nname: bad-agent\n---\nImproved content.\n"
-        mock_draft.target_path = agent_file
-
         with (
-            patch("reagent.ci.runner.CIRunner._evaluate_assets", return_value=assets),
+            patch(
+                "reagent.ci.runner.CIRunner._evaluate_assets",
+                return_value=assets,
+            ),
             patch("reagent.ci.runner.CIRunner._run_security", return_value="A"),
             patch("reagent.ci.runner.CIRunner._run_drift", return_value=[]),
-            patch("reagent.creation.creator.regenerate_asset", return_value=mock_draft),
         ):
             config = CIConfig(
                 repo_path=tmp_path,
@@ -524,59 +512,65 @@ class TestCIRunner:
             )
             result = CIRunner().run(config)
 
-        assert len(result.fixes_applied) == 1
-        assert "bad-agent.md" in result.fixes_applied[0]
-        assert agent_file.read_text(encoding="utf-8") == mock_draft.content
+        assert len(result.fixes_applied) == 0
 
     def test_runner_suggest_mode_returns_result(self, tmp_path: Path) -> None:
         assets = [_make_asset_result("suggest-agent", "agent", 70.0)]
         with (
-            patch("reagent.ci.runner.CIRunner._evaluate_assets", return_value=assets),
+            patch(
+                "reagent.ci.runner.CIRunner._evaluate_assets",
+                return_value=assets,
+            ),
             patch("reagent.ci.runner.CIRunner._run_security", return_value="B"),
             patch("reagent.ci.runner.CIRunner._run_drift", return_value=[]),
         ):
-            config = CIConfig(repo_path=tmp_path, mode=CIMode.SUGGEST, threshold=60.0)
+            config = CIConfig(
+                repo_path=tmp_path, mode=CIMode.SUGGEST, threshold=60.0
+            )
             result = CIRunner().run(config)
 
         assert result.overall_score == pytest.approx(70.0)
         assert result.security_grade == "B"
         assert result.exit_code == 0
 
-    def test_runner_security_disabled(self, tmp_path: Path) -> None:
+    @pytest.mark.parametrize(
+        ("security", "mock_grade", "expect_exit", "expect_grade"),
+        [
+            pytest.param(False, None, 0, "A", id="disabled"),
+            pytest.param(True, "F", 2, "F", id="grade_f"),
+        ],
+    )
+    def test_runner_security_handling(
+        self,
+        tmp_path: Path,
+        security: bool,
+        mock_grade: str | None,
+        expect_exit: int,
+        expect_grade: str,
+    ) -> None:
         assets = [_make_asset_result("agent", "agent", 80.0)]
-        with (
-            patch("reagent.ci.runner.CIRunner._evaluate_assets", return_value=assets),
-            patch("reagent.ci.runner.CIRunner._run_drift", return_value=[]),
-        ):
+        mocks: dict[str, Any] = {
+            "reagent.ci.runner.CIRunner._evaluate_assets": assets,
+            "reagent.ci.runner.CIRunner._run_drift": [],
+        }
+        if mock_grade is not None:
+            mocks["reagent.ci.runner.CIRunner._run_security"] = mock_grade
+
+        with ExitStack() as stack:
+            for target, rv in mocks.items():
+                stack.enter_context(patch(target, return_value=rv))
             config = CIConfig(
                 repo_path=tmp_path,
                 mode=CIMode.CHECK,
-                security=False,
+                security=security,
                 threshold=60.0,
             )
             result = CIRunner().run(config)
 
-        assert result.exit_code == 0
-        # Security grade defaults to A when disabled
-        assert result.security_grade == "A"
-
-    def test_runner_security_grade_f_exits_2(self, tmp_path: Path) -> None:
-        assets = [_make_asset_result("agent", "agent", 80.0)]
-        with (
-            patch("reagent.ci.runner.CIRunner._evaluate_assets", return_value=assets),
-            patch("reagent.ci.runner.CIRunner._run_security", return_value="F"),
-            patch("reagent.ci.runner.CIRunner._run_drift", return_value=[]),
-        ):
-            config = CIConfig(
-                repo_path=tmp_path,
-                mode=CIMode.CHECK,
-                security=True,
-                threshold=60.0,
-            )
-            result = CIRunner().run(config)
-
-        assert result.exit_code == 2
-        assert result.passed is False
+        assert result.exit_code == expect_exit
+        assert result.security_grade == expect_grade
+        if expect_exit == 2:
+            assert result.passed is False
 
 
 class TestCLI:
@@ -590,39 +584,50 @@ class TestCLI:
 
         return cli
 
-    def test_cli_ci_help(self, runner: CliRunner, cli_app: Any) -> None:
-        result = runner.invoke(cli_app, ["ci", "--help"])
-        assert result.exit_code == 0
-        assert "mode" in result.output.lower()
-        assert "threshold" in result.output.lower()
-
-    def test_cli_drift_help(self, runner: CliRunner, cli_app: Any) -> None:
-        result = runner.invoke(cli_app, ["drift", "--help"])
-        assert result.exit_code == 0
-        assert "repo" in result.output.lower()
-
-    def test_cli_ci_exits_0_on_pass(
-        self, runner: CliRunner, cli_app: Any, tmp_path: Path
+    @pytest.mark.parametrize(
+        ("command", "expected_words"),
+        [
+            pytest.param(["ci", "--help"], ["mode", "threshold"], id="ci"),
+            pytest.param(["drift", "--help"], ["repo"], id="drift"),
+        ],
+    )
+    def test_help_output(
+        self,
+        runner: CliRunner,
+        cli_app: Any,
+        command: list[str],
+        expected_words: list[str],
     ) -> None:
-        mock_result = _make_ci_result(overall_score=80.0, passed=True, exit_code=0)
+        result = runner.invoke(cli_app, command)
+        assert result.exit_code == 0
+        for word in expected_words:
+            assert word in result.output.lower()
+
+    @pytest.mark.parametrize(
+        ("overall_score", "passed", "exit_code"),
+        [
+            pytest.param(80.0, True, 0, id="pass"),
+            pytest.param(40.0, False, 1, id="fail"),
+        ],
+    )
+    def test_cli_ci_exit_code(
+        self,
+        runner: CliRunner,
+        cli_app: Any,
+        tmp_path: Path,
+        overall_score: float,
+        passed: bool,
+        exit_code: int,
+    ) -> None:
+        mock_result = _make_ci_result(
+            overall_score=overall_score, passed=passed, exit_code=exit_code
+        )
         with patch("reagent.ci.runner.CIRunner.run", return_value=mock_result):
             result = runner.invoke(
                 cli_app,
                 ["ci", "--repo", str(tmp_path), "--no-security"],
-                catch_exceptions=False,
             )
-        assert result.exit_code == 0
-
-    def test_cli_ci_exits_1_on_fail(
-        self, runner: CliRunner, cli_app: Any, tmp_path: Path
-    ) -> None:
-        mock_result = _make_ci_result(overall_score=40.0, passed=False, exit_code=1)
-        with patch("reagent.ci.runner.CIRunner.run", return_value=mock_result):
-            result = runner.invoke(
-                cli_app,
-                ["ci", "--repo", str(tmp_path), "--no-security"],
-            )
-        assert result.exit_code == 1
+        assert result.exit_code == exit_code
 
     def test_cli_ci_suggest_mode(
         self, runner: CliRunner, cli_app: Any, tmp_path: Path
@@ -631,7 +636,14 @@ class TestCLI:
         with patch("reagent.ci.runner.CIRunner.run", return_value=mock_result):
             result = runner.invoke(
                 cli_app,
-                ["ci", "--mode", "suggest", "--repo", str(tmp_path), "--no-security"],
+                [
+                    "ci",
+                    "--mode",
+                    "suggest",
+                    "--repo",
+                    str(tmp_path),
+                    "--no-security",
+                ],
                 catch_exceptions=False,
             )
         assert result.exit_code == 0
@@ -658,7 +670,9 @@ class TestCLI:
     ) -> None:
         with patch("reagent.ci.drift.DriftDetector.detect", return_value=[]):
             result = runner.invoke(
-                cli_app, ["drift", "--repo", str(tmp_path)], catch_exceptions=False
+                cli_app,
+                ["drift", "--repo", str(tmp_path)],
+                catch_exceptions=False,
             )
         assert result.exit_code == 0
         assert "No drift" in result.output
@@ -675,9 +689,13 @@ class TestCLI:
                 severity="warning",
             )
         ]
-        with patch("reagent.ci.drift.DriftDetector.detect", return_value=reports):
+        with patch(
+            "reagent.ci.drift.DriftDetector.detect", return_value=reports
+        ):
             result = runner.invoke(
-                cli_app, ["drift", "--repo", str(tmp_path)], catch_exceptions=False
+                cli_app,
+                ["drift", "--repo", str(tmp_path)],
+                catch_exceptions=False,
             )
         assert result.exit_code == 0
         assert "stale" in result.output.lower()

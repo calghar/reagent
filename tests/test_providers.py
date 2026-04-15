@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
@@ -14,7 +13,6 @@ from reagent.llm.config import (
     ProviderFallback,
     RoutingStrategy,
 )
-from reagent.llm.costs import BudgetStatus, CostEntry, CostTracker
 from reagent.llm.providers import (
     AnthropicProvider,
     GoogleProvider,
@@ -39,7 +37,6 @@ class TestLLMConfig:
         assert cfg.model == "claude-sonnet-4-20250514"
         assert cfg.routing == RoutingStrategy.COST
         assert cfg.features.enabled is True
-        assert cfg.monthly_budget == approx(10.0)
 
     def test_env_overrides(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("REAGENT_LLM_PROVIDER", "openai")
@@ -97,48 +94,43 @@ class TestHelpers:
         assert p.estimate_tokens("hello world") >= 1
         assert p.estimate_tokens("a" * 400) == 100
 
-    def test_compute_cost_known(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
-        p = AnthropicProvider(model="claude-sonnet-4-20250514")
-        cost = p.estimate_cost(1_000_000, 0)
-        assert cost == pytest.approx(3.0)
-
-    def test_compute_cost_unknown_model(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
-        p = AnthropicProvider(model="unknown-model")
-        assert p.estimate_cost(100, 100) == pytest.approx(0.0)
-
-    def test_compute_cost_zero_for_ollama(self) -> None:
-        p = OllamaProvider()
-        assert p.estimate_cost(100, 100) == pytest.approx(0.0)
-
-    def test_raise_for_status_success(self) -> None:
-        resp = httpx.Response(200)
-        _raise_for_status("test", resp)  # should not raise
-
-    def test_raise_for_status_401(self) -> None:
-        resp = httpx.Response(401, text="Unauthorized")
-        with pytest.raises(LLMAuthError):
+    @pytest.mark.parametrize(
+        ("status", "error_cls"),
+        [
+            pytest.param(200, None, id="success"),
+            pytest.param(401, LLMAuthError, id="auth"),
+            pytest.param(429, LLMRateLimitError, id="rate_limit"),
+            pytest.param(500, LLMAPIError, id="server_error"),
+        ],
+    )
+    def test_raise_for_status(
+        self, status: int, error_cls: type[Exception] | None
+    ) -> None:
+        resp = httpx.Response(status, text="error message")
+        if error_cls is None:
             _raise_for_status("test", resp)
+        else:
+            with pytest.raises(error_cls) as exc_info:
+                _raise_for_status("test", resp)
+            if hasattr(exc_info.value, "status_code"):
+                assert exc_info.value.status_code == status
 
-    def test_raise_for_status_429(self) -> None:
-        resp = httpx.Response(429, text="Rate limited")
-        with pytest.raises(LLMRateLimitError):
-            _raise_for_status("test", resp)
-
-    def test_raise_for_status_500(self) -> None:
-        resp = httpx.Response(500, text="Internal server error")
-        with pytest.raises(LLMAPIError) as exc_info:
-            _raise_for_status("test", resp)
-        assert exc_info.value.status_code == 500
-
-    def test_create_provider_factory(self) -> None:
-        p = create_provider("ollama", "llama3")
-        assert p.name == "ollama"
-
-    def test_create_provider_unknown(self) -> None:
-        with pytest.raises(ValueError, match="Unknown provider"):
-            create_provider("nonexistent", "x")
+    @pytest.mark.parametrize(
+        ("name", "model", "expected_name"),
+        [
+            pytest.param("ollama", "llama3", "ollama", id="valid"),
+            pytest.param("nonexistent", "x", None, id="unknown"),
+        ],
+    )
+    def test_create_provider(
+        self, name: str, model: str, expected_name: str | None
+    ) -> None:
+        if expected_name is None:
+            with pytest.raises(ValueError, match="Unknown provider"):
+                create_provider(name, model)
+        else:
+            p = create_provider(name, model)
+            assert p.name == expected_name
 
 
 class TestProviderNameAndAvailability:
@@ -166,24 +158,27 @@ class TestProviderNameAndAvailability:
                 "google",
                 id="google",
             ),
+            pytest.param(
+                OllamaProvider,
+                None,
+                None,
+                "ollama",
+                id="ollama",
+            ),
         ],
     )
-    def test_name_and_availability_with_key(
+    def test_name_and_availability(
         self,
         monkeypatch: pytest.MonkeyPatch,
         provider_cls: type,
-        env_var: str,
-        env_val: str,
+        env_var: str | None,
+        env_val: str | None,
         expected_name: str,
     ) -> None:
-        monkeypatch.setenv(env_var, env_val)
+        if env_var and env_val:
+            monkeypatch.setenv(env_var, env_val)
         p = provider_cls()
         assert p.name == expected_name
-        assert p.available is True
-
-    def test_ollama_name_and_availability(self) -> None:
-        p = OllamaProvider()
-        assert p.name == "ollama"
         assert p.available is True
 
 
@@ -229,21 +224,53 @@ class TestProviderEstimateCost:
                 0.50,
                 id="google_gemini_flash",
             ),
+            pytest.param(
+                AnthropicProvider,
+                "ANTHROPIC_API_KEY",
+                "sk-test",
+                "claude-sonnet-4-20250514",
+                1_000_000,
+                0,
+                3.0,
+                id="anthropic_input_only",
+            ),
+            pytest.param(
+                AnthropicProvider,
+                "ANTHROPIC_API_KEY",
+                "sk-test",
+                "unknown-model",
+                100,
+                100,
+                0.0,
+                id="anthropic_unknown_model",
+            ),
+            pytest.param(
+                OllamaProvider,
+                None,
+                None,
+                None,
+                100,
+                100,
+                0.0,
+                id="ollama_zero_cost",
+            ),
         ],
     )
     def test_estimate_cost(
         self,
         monkeypatch: pytest.MonkeyPatch,
         provider_cls: type,
-        env_var: str,
-        env_val: str,
-        model: str,
+        env_var: str | None,
+        env_val: str | None,
+        model: str | None,
         input_tokens: int,
         output_tokens: int,
         expected_cost: float,
     ) -> None:
-        monkeypatch.setenv(env_var, env_val)
-        p = provider_cls(model=model)
+        if env_var and env_val:
+            monkeypatch.setenv(env_var, env_val)
+        kwargs = {"model": model} if model else {}
+        p = provider_cls(**kwargs)
         cost = p.estimate_cost(input_tokens, output_tokens)
         assert cost == approx(expected_cost)
 
@@ -276,24 +303,35 @@ class TestAnthropicProvider:
         assert resp.output_tokens == 5
         assert resp.cost_usd > 0
 
+    @pytest.mark.parametrize(
+        ("has_key", "expect_healthy", "expect_error_substr"),
+        [
+            pytest.param(False, False, "not set", id="unavailable"),
+            pytest.param(True, True, None, id="success"),
+        ],
+    )
     @pytest.mark.anyio()
-    async def test_health_check_unavailable(
-        self, monkeypatch: pytest.MonkeyPatch
+    async def test_health_check(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        has_key: bool,
+        expect_healthy: bool,
+        expect_error_substr: str | None,
     ) -> None:
-        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        if has_key:
+            monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+        else:
+            monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         p = AnthropicProvider()
+        if has_key:
+            p._client = AsyncMock()
+            p._client.post = AsyncMock(
+                return_value=httpx.Response(200, json={})
+            )
         status = await p.health_check()
-        assert status.healthy is False
-        assert "not set" in (status.error or "")
-
-    @pytest.mark.anyio()
-    async def test_health_check_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
-        p = AnthropicProvider()
-        p._client = AsyncMock()
-        p._client.post = AsyncMock(return_value=httpx.Response(200, json={}))
-        status = await p.health_check()
-        assert status.healthy is True
+        assert status.healthy is expect_healthy
+        if expect_error_substr:
+            assert expect_error_substr in (status.error or "")
 
 
 class TestOpenAIProvider:
@@ -333,7 +371,10 @@ class TestGoogleProvider:
                         "finishReason": "STOP",
                     }
                 ],
-                "usageMetadata": {"promptTokenCount": 12, "candidatesTokenCount": 4},
+                "usageMetadata": {
+                    "promptTokenCount": 12,
+                    "candidatesTokenCount": 4,
+                },
             },
         )
         p._client = AsyncMock()
@@ -365,34 +406,68 @@ class TestOllamaProvider:
         assert resp.cost_usd == approx(0.0)
         assert resp.finish_reason == "stop"
 
+    @pytest.mark.parametrize(
+        ("mock_side_effect", "mock_return", "expect_healthy"),
+        [
+            pytest.param(
+                None,
+                httpx.Response(200, json={"models": []}),
+                True,
+                id="success",
+            ),
+            pytest.param(
+                httpx.ConnectError("refused"),
+                None,
+                False,
+                id="failure",
+            ),
+        ],
+    )
     @pytest.mark.anyio()
-    async def test_health_check_success(self) -> None:
+    async def test_health_check(
+        self,
+        mock_side_effect: Exception | None,
+        mock_return: httpx.Response | None,
+        expect_healthy: bool,
+    ) -> None:
         p = OllamaProvider()
         p._client = AsyncMock()
-        p._client.get = AsyncMock(return_value=httpx.Response(200, json={"models": []}))
+        if mock_side_effect:
+            p._client.get = AsyncMock(side_effect=mock_side_effect)
+        else:
+            p._client.get = AsyncMock(return_value=mock_return)
         status = await p.health_check()
-        assert status.healthy is True
+        assert status.healthy is expect_healthy
 
-    @pytest.mark.anyio()
-    async def test_health_check_failure(self) -> None:
-        p = OllamaProvider()
-        p._client = AsyncMock()
-        p._client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
-        status = await p.health_check()
-        assert status.healthy is False
-
-    def test_estimate_cost_zero(self) -> None:
-        p = OllamaProvider()
-        assert p.estimate_cost(10000, 10000) == approx(0.0)
-
-    def test_custom_host(self) -> None:
-        p = OllamaProvider(host="http://myserver:11434")
-        assert p._host == "http://myserver:11434"
-
-    def test_host_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("OLLAMA_HOST", "http://remote:11434")
-        p = OllamaProvider()
-        assert p._host == "http://remote:11434"
+    @pytest.mark.parametrize(
+        ("host_kwarg", "env_host", "expected_host"),
+        [
+            pytest.param(
+                "http://myserver:11434",
+                None,
+                "http://myserver:11434",
+                id="custom_kwarg",
+            ),
+            pytest.param(
+                None,
+                "http://remote:11434",
+                "http://remote:11434",
+                id="from_env",
+            ),
+        ],
+    )
+    def test_host_configuration(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        host_kwarg: str | None,
+        env_host: str | None,
+        expected_host: str,
+    ) -> None:
+        if env_host:
+            monkeypatch.setenv("OLLAMA_HOST", env_host)
+        kwargs = {"host": host_kwarg} if host_kwarg else {}
+        p = OllamaProvider(**kwargs)
+        assert p._host == expected_host
 
 
 class TestProviderRouter:
@@ -484,27 +559,25 @@ class TestProviderRouter:
         with pytest.raises(NoProviderAvailableError, match="All providers failed"):
             await router.generate("test", "system")
 
-    def test_circuit_breaker_opens(self) -> None:
+    @pytest.mark.parametrize(
+        ("failures", "checked_ago_s", "expected_open"),
+        [
+            pytest.param(3, 0, True, id="opens"),
+            pytest.param(3, 301, False, id="recovery"),
+        ],
+    )
+    def test_circuit_breaker(
+        self, failures: int, checked_ago_s: int, expected_open: bool
+    ) -> None:
         router = self._make_router()
-        router._failure_counts["ollama"] = 3
+        router._failure_counts["ollama"] = failures
         router._health_cache["ollama"] = HealthStatus(
             provider="ollama",
             healthy=False,
-            checked_at=datetime.now(UTC),
-            consecutive_failures=3,
+            checked_at=datetime.now(UTC) - timedelta(seconds=checked_ago_s),
+            consecutive_failures=failures,
         )
-        assert router._is_circuit_open("ollama") is True
-
-    def test_circuit_breaker_recovery(self) -> None:
-        router = self._make_router()
-        router._failure_counts["ollama"] = 3
-        router._health_cache["ollama"] = HealthStatus(
-            provider="ollama",
-            healthy=False,
-            checked_at=datetime.now(UTC) - timedelta(seconds=301),
-            consecutive_failures=3,
-        )
-        assert router._is_circuit_open("ollama") is False
+        assert router._is_circuit_open("ollama") is expected_open
 
     @pytest.mark.anyio()
     async def test_select_provider(self) -> None:
@@ -522,106 +595,44 @@ class TestProviderRouter:
             await router.select_provider()
 
 
-class TestCostTracker:
-    def _make_entry(self, cost: float = 0.01) -> CostEntry:
-        return CostEntry(
-            provider="anthropic",
-            model="claude-sonnet-4-20250514",
-            input_tokens=100,
-            output_tokens=50,
-            cost_usd=cost,
-            latency_ms=200,
-        )
-
-    def test_record_and_session_total(self, tmp_path: pytest.TempPathFactory) -> None:
-        db = tmp_path / "test.db"  # type: ignore[operator]
-        tracker = CostTracker(db_path=db, monthly_budget=10.0)
-        tracker.record(self._make_entry(0.05))
-        tracker.record(self._make_entry(0.03))
-        assert tracker.session_total() == pytest.approx(0.08)
-        tracker.close()
-
-    def test_monthly_total_sqlite(self, tmp_path: pytest.TempPathFactory) -> None:
-        db = tmp_path / "test.db"  # type: ignore[operator]
-        tracker = CostTracker(db_path=db, monthly_budget=10.0)
-        tracker.record(self._make_entry(1.5))
-        total = tracker.monthly_total()
-        assert total >= 1.5
-        tracker.close()
-
-    def test_budget_ok(self, tmp_path: pytest.TempPathFactory) -> None:
-        db = tmp_path / "test.db"  # type: ignore[operator]
-        tracker = CostTracker(db_path=db, monthly_budget=10.0)
-        tracker.record(self._make_entry(1.0))
-        assert tracker.budget_status() == BudgetStatus.OK
-        tracker.close()
-
-    def test_budget_warning(self, tmp_path: pytest.TempPathFactory) -> None:
-        db = tmp_path / "test.db"  # type: ignore[operator]
-        tracker = CostTracker(db_path=db, monthly_budget=10.0)
-        tracker.record(self._make_entry(8.5))
-        assert tracker.budget_status() == BudgetStatus.WARNING
-        tracker.close()
-
-    def test_budget_exceeded(self, tmp_path: pytest.TempPathFactory) -> None:
-        db = tmp_path / "test.db"  # type: ignore[operator]
-        tracker = CostTracker(db_path=db, monthly_budget=10.0)
-        tracker.record(self._make_entry(11.0))
-        assert tracker.budget_status() == BudgetStatus.EXCEEDED
-        tracker.close()
-
-    def test_cost_by_provider(self, tmp_path: pytest.TempPathFactory) -> None:
-        db = tmp_path / "test.db"  # type: ignore[operator]
-        tracker = CostTracker(db_path=db, monthly_budget=10.0)
-        tracker.record(self._make_entry(0.5))
-        by_provider = tracker.cost_by_provider()
-        assert "anthropic" in by_provider
-        assert by_provider["anthropic"] == pytest.approx(0.5)
-        tracker.close()
-
-    def test_jsonl_fallback(self, tmp_path: pytest.TempPathFactory) -> None:
-        # Use a path that will fail for SQLite (dir as file)
-        bad_path = tmp_path / "nodir" / "deep" / "test.db"  # type: ignore[operator]
-        # Don't create the parent — SQLite will fail on connect
-        # Actually CostTracker creates parent. Let's just test that JSONL works
-        # by patching _init_db to fail
-        tracker = CostTracker(db_path=bad_path, monthly_budget=10.0)
-        # Force JSONL mode
-        if tracker._db is not None:
-            tracker._db.close()
-            tracker._db = None
-        entry = self._make_entry(0.02)
-        tracker.record(entry)
-        jsonl_path = bad_path.parent / "cost_log.jsonl"
-        assert jsonl_path.exists()
-        data = json.loads(jsonl_path.read_text().strip())
-        assert data["cost_usd"] == approx(0.02)
-
-    def test_budget_zero_is_ok(self, tmp_path: pytest.TempPathFactory) -> None:
-        # monthly_budget=0 is documented as "no budget limit" in costs.py
-        # (CostTracker.budget_status returns BudgetStatus.OK when budget <= 0).
-        # This test verifies that sentinel value is honoured regardless of spend.
-        db = tmp_path / "test.db"  # type: ignore[operator]
-        tracker = CostTracker(db_path=db, monthly_budget=0.0)
-        tracker.record(self._make_entry(100.0))
-        assert tracker.budget_status() == BudgetStatus.OK
-        tracker.close()
-
-
 class TestErrors:
-    def test_provider_error(self) -> None:
-        err = LLMProviderError("test", "something broke")
-        assert "test" in str(err)
-        assert err.provider == "test"
-
-    def test_api_error_status(self) -> None:
-        err = LLMAPIError("openai", 503, "Service unavailable")
-        assert err.status_code == 503
-        assert "503" in str(err)
-
-    def test_no_provider_error(self) -> None:
-        err = NoProviderAvailableError("nothing works")
-        assert "nothing works" in str(err)
+    @pytest.mark.parametrize(
+        ("error_cls", "args", "expected_in_str", "extra_checks"),
+        [
+            pytest.param(
+                LLMProviderError,
+                ("test", "something broke"),
+                "test",
+                {"provider": "test"},
+                id="provider_error",
+            ),
+            pytest.param(
+                LLMAPIError,
+                ("openai", 503, "Service unavailable"),
+                "503",
+                {"status_code": 503},
+                id="api_error",
+            ),
+            pytest.param(
+                NoProviderAvailableError,
+                ("nothing works",),
+                "nothing works",
+                {},
+                id="no_provider",
+            ),
+        ],
+    )
+    def test_error_types(
+        self,
+        error_cls: type[Exception],
+        args: tuple[object, ...],
+        expected_in_str: str,
+        extra_checks: dict[str, object],
+    ) -> None:
+        err = error_cls(*args)
+        assert expected_in_str in str(err)
+        for attr, value in extra_checks.items():
+            assert getattr(err, attr) == value
 
 
 class TestReagentConfigIntegration:
@@ -637,9 +648,8 @@ class TestReagentConfigIntegration:
 
         config_path = tmp_path / "config.yaml"  # type: ignore[operator]
         config_path.write_text(
-            "llm:\n  provider: openai\n  model: gpt-4o\n  monthly_budget: 5.0\n"
+            "llm:\n  provider: openai\n  model: gpt-4o\n"
         )
         cfg = ReagentConfig.load(config_path)
         assert cfg.llm.provider == "openai"
         assert cfg.llm.model == "gpt-4o"
-        assert cfg.llm.monthly_budget == approx(5.0)

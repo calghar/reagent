@@ -85,13 +85,19 @@ class TestSecurityResult:
         result = SecurityResult(grade=grade, score=score)
         assert result.passed is expected_pass
 
-    def test_default_scanner(self) -> None:
-        result = SecurityResult(grade="A", score=100.0)
-        assert result.scanner == "builtin"
-
-    def test_agentshield_scanner(self) -> None:
-        result = SecurityResult(grade="B", score=82.0, scanner="agentshield")
-        assert result.scanner == "agentshield"
+    @pytest.mark.parametrize(
+        ("scanner_arg", "expected"),
+        [
+            pytest.param(None, "builtin", id="default_builtin"),
+            pytest.param("agentshield", "agentshield", id="agentshield"),
+        ],
+    )
+    def test_scanner_field(self, scanner_arg: str | None, expected: str) -> None:
+        kwargs: dict[str, object] = {"grade": "A", "score": 100.0}
+        if scanner_arg is not None:
+            kwargs["scanner"] = scanner_arg
+        result = SecurityResult(**kwargs)  # type: ignore[arg-type]
+        assert result.scanner == expected
 
     def test_issues_default_empty(self) -> None:
         result = SecurityResult(grade="A", score=100.0)
@@ -162,17 +168,18 @@ class TestSecurityGate:
 
 
 class TestAgentShieldRunner:
-    def test_is_available_when_npx_present(self) -> None:
+    @pytest.mark.parametrize(
+        ("which_return", "expected"),
+        [
+            pytest.param("/usr/local/bin/npx", True, id="npx_present"),
+            pytest.param(None, False, id="npx_missing"),
+        ],
+    )
+    def test_is_available(self, which_return: str | None, expected: bool) -> None:
         from reagent.security.agentshield import is_available
 
-        with patch("shutil.which", return_value="/usr/local/bin/npx"):
-            assert is_available() is True
-
-    def test_is_not_available_when_npx_missing(self) -> None:
-        from reagent.security.agentshield import is_available
-
-        with patch("shutil.which", return_value=None):
-            assert is_available() is False
+        with patch("shutil.which", return_value=which_return):
+            assert is_available() is expected
 
     @pytest.mark.anyio()
     async def test_run_scan_returns_none_when_not_available(
@@ -210,77 +217,110 @@ class TestAgentShieldRunner:
         assert result.issues[0].rule_id == "AS-001"
         assert result.issues[0].auto_fixable is True
 
-    def test_parse_invalid_json_returns_none(self) -> None:
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            pytest.param("not json at all", id="invalid_json"),
+            pytest.param(json.dumps([1, 2, 3]), id="non_dict"),
+        ],
+    )
+    def test_parse_bad_input_returns_none(self, payload: str) -> None:
         from reagent.security.agentshield import _parse_agentshield_output
 
-        result = _parse_agentshield_output("not json at all")
-        assert result is None
-
-    def test_parse_non_dict_returns_none(self) -> None:
-        from reagent.security.agentshield import _parse_agentshield_output
-
-        result = _parse_agentshield_output(json.dumps([1, 2, 3]))
+        result = _parse_agentshield_output(payload)
         assert result is None
 
 
 class TestBuiltinScannerRules:
-    def test_sec010_bypass_permissions(self, tmp_path: Path) -> None:
-        content = 'permissionMode": bypassPermissions'
-        findings = scan_content(content, tmp_path / "test.md")
-        assert any(f.rule_id == "SEC-010" for f in findings)
+    @pytest.mark.parametrize(
+        ("content", "filename", "rule_id"),
+        [
+            pytest.param(
+                'permissionMode": bypassPermissions',
+                "test.md",
+                "SEC-010",
+                id="sec010-bypass_permissions",
+            ),
+            pytest.param(
+                "name: test\ntools:\n  - Read\n  - Bash\n",
+                "agent.md",
+                "SEC-011",
+                id="sec011-bare_bash",
+            ),
+            pytest.param(
+                "agent: true\ntools:\n"
+                + "\n".join(f"  - Tool{i}" for i in range(12))
+                + "\n",
+                "agent.md",
+                "SEC-012",
+                id="sec012-too_many_tools",
+            ),
+            pytest.param(
+                "hooks:\n  PostToolUse:\n"
+                "    - type: command\n"
+                "      command: echo ${USER}\n",
+                "settings.json",
+                "SEC-013",
+                id="sec013-shell_injection",
+            ),
+            pytest.param(
+                "api_key: ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567",
+                "test.md",
+                "SEC-014",
+                id="sec014-hardcoded_secret",
+            ),
+        ],
+    )
+    def test_rule_fires(
+        self, tmp_path: Path, content: str, filename: str, rule_id: str
+    ) -> None:
+        findings = scan_content(content, tmp_path / filename)
+        assert any(f.rule_id == rule_id for f in findings)
 
-    def test_sec010_does_not_fire_on_plan_mode(self, tmp_path: Path) -> None:
-        content = "permissionMode: plan"
-        findings = scan_content(content, tmp_path / "test.md")
-        assert not any(f.rule_id == "SEC-010" for f in findings)
-
-    def test_sec011_bare_bash_in_yaml_tools(self, tmp_path: Path) -> None:
-        # Use plain YAML without frontmatter delimiters for checker
-        content = "name: test\ntools:\n  - Read\n  - Bash\n"
-        findings = scan_content(content, tmp_path / "agent.md")
-        assert any(f.rule_id == "SEC-011" for f in findings)
-
-    def test_sec011_restricted_bash_ok(self, tmp_path: Path) -> None:
-        content = "name: test\ntools:\n  - Bash(git *)\n"
-        findings = scan_content(content, tmp_path / "agent.md")
-        assert not any(f.rule_id == "SEC-011" for f in findings)
-
-    def test_sec012_too_many_tools(self, tmp_path: Path) -> None:
-        tool_list = "\n".join(f"  - Tool{i}" for i in range(12))
-        content = f"agent: true\ntools:\n{tool_list}\n"
-        findings = scan_content(content, tmp_path / "agent.md")
-        assert any(f.rule_id == "SEC-012" for f in findings)
-
-    def test_sec012_ten_tools_ok(self, tmp_path: Path) -> None:
-        tool_list = "\n".join(f"  - Tool{i}" for i in range(10))
-        content = f"agent: true\ntools:\n{tool_list}\n"
-        findings = scan_content(content, tmp_path / "agent.md")
-        assert not any(f.rule_id == "SEC-012" for f in findings)
-
-    def test_sec013_shell_injection_in_hook_command(self, tmp_path: Path) -> None:
-        content = (
-            "hooks:\n  PostToolUse:\n    - type: command\n      command: echo ${USER}\n"
-        )
-        findings = scan_content(content, tmp_path / "settings.json")
-        assert any(f.rule_id == "SEC-013" for f in findings)
-
-    def test_sec013_clean_hook_command(self, tmp_path: Path) -> None:
-        content = (
-            "hooks:\n  PostToolUse:\n    - type: command\n      command: echo hello\n"
-        )
-        findings = scan_content(content, tmp_path / "settings.json")
-        assert not any(f.rule_id == "SEC-013" for f in findings)
-
-    def test_sec014_hardcoded_secret(self, tmp_path: Path) -> None:
-        content = "api_key: ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567"
-        findings = scan_content(content, tmp_path / "test.md")
-        assert any(f.rule_id == "SEC-014" for f in findings)
-
-    def test_sec014_short_value_ok(self, tmp_path: Path) -> None:
-        # Value shorter than 16 chars — should not fire
-        content = "api_key: tooshort"
-        findings = scan_content(content, tmp_path / "test.md")
-        assert not any(f.rule_id == "SEC-014" for f in findings)
+    @pytest.mark.parametrize(
+        ("content", "filename", "rule_id"),
+        [
+            pytest.param(
+                "permissionMode: plan",
+                "test.md",
+                "SEC-010",
+                id="sec010-plan_mode_ok",
+            ),
+            pytest.param(
+                "name: test\ntools:\n  - Bash(git *)\n",
+                "agent.md",
+                "SEC-011",
+                id="sec011-restricted_bash_ok",
+            ),
+            pytest.param(
+                "agent: true\ntools:\n"
+                + "\n".join(f"  - Tool{i}" for i in range(10))
+                + "\n",
+                "agent.md",
+                "SEC-012",
+                id="sec012-ten_tools_ok",
+            ),
+            pytest.param(
+                "hooks:\n  PostToolUse:\n"
+                "    - type: command\n"
+                "      command: echo hello\n",
+                "settings.json",
+                "SEC-013",
+                id="sec013-clean_hook_ok",
+            ),
+            pytest.param(
+                "api_key: tooshort",
+                "test.md",
+                "SEC-014",
+                id="sec014-short_value_ok",
+            ),
+        ],
+    )
+    def test_rule_does_not_fire(
+        self, tmp_path: Path, content: str, filename: str, rule_id: str
+    ) -> None:
+        findings = scan_content(content, tmp_path / filename)
+        assert not any(f.rule_id == rule_id for f in findings)
 
 
 class TestScoreReport:

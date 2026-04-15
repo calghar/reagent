@@ -8,7 +8,6 @@ import pytest
 from reagent.core.parsers import AssetType
 from reagent.llm.cache import CacheEntry, GenerationCache, make_cache_key
 from reagent.llm.config import CostTier, LLMConfig, select_model
-from reagent.llm.costs import CostEntry, CostTracker
 from reagent.llm.instincts import Instinct, InstinctStore, TrustTier
 from reagent.llm.prompts import (
     ProfileTier,
@@ -62,57 +61,6 @@ class TestReagentDB:
         c1 = db.connect()
         c2 = db.connect()
         assert c1 is c2
-
-
-class TestCostCRUD:
-    def test_insert_and_query(self, conn: sqlite3.Connection) -> None:
-        tracker = CostTracker(connection=conn)
-        entry = CostEntry(
-            provider="anthropic",
-            model="claude-sonnet-4-20250514",
-            input_tokens=100,
-            output_tokens=200,
-            cost_usd=0.0035,
-            latency_ms=450,
-        )
-        tracker.record(entry)
-
-        row = conn.execute(
-            "SELECT provider, model, cost_usd FROM cost_entries WHERE cost_id = ?",
-            (entry.cost_id,),
-        ).fetchone()
-        assert row is not None
-        assert row[0] == "anthropic"
-        assert row[2] == pytest.approx(0.0035)
-
-    def test_session_total(self, conn: sqlite3.Connection) -> None:
-        tracker = CostTracker(connection=conn)
-        for _ in range(3):
-            tracker.record(
-                CostEntry(
-                    provider="anthropic",
-                    model="test",
-                    input_tokens=10,
-                    output_tokens=10,
-                    cost_usd=1.0,
-                    latency_ms=100,
-                )
-            )
-        assert tracker.session_total() == pytest.approx(3.0)
-
-    def test_monthly_total(self, conn: sqlite3.Connection) -> None:
-        tracker = CostTracker(connection=conn)
-        tracker.record(
-            CostEntry(
-                provider="openai",
-                model="gpt-4o",
-                input_tokens=50,
-                output_tokens=50,
-                cost_usd=2.5,
-                latency_ms=300,
-            )
-        )
-        assert tracker.monthly_total() >= 2.5
 
 
 class TestInstinctsCRUD:
@@ -421,26 +369,6 @@ class TestJSONLMigration:
         sqlite_store2.load()
         assert len(sqlite_store2.instincts) == 1
         assert sqlite_store2.instincts[0].instinct_id == "migrate-001"
-
-    def test_cost_tracker_jsonl_fallback(self, tmp_path: Path) -> None:
-        """CostTracker falls back to JSONL when SQLite fails."""
-        # Force a connection failure by passing a directory as db_path
-        dir_path = tmp_path / "is_a_dir.db"
-        dir_path.mkdir()
-
-        tracker = CostTracker(db_path=dir_path)
-        # Should fall back to JSONL — record shouldn't crash
-        tracker.record(
-            CostEntry(
-                provider="test",
-                model="test",
-                input_tokens=10,
-                output_tokens=10,
-                cost_usd=0.001,
-                latency_ms=50,
-            )
-        )
-        assert tracker.session_total() == pytest.approx(0.001)
 
 
 class TestMigrations:
