@@ -325,7 +325,12 @@ def profile_repo(
         repo_name=repo_path.name,
     )
 
-    sessions_dir = find_sessions_dir(repo_path)
+    sessions_dir = find_sessions_dir(
+        repo_path,
+        claude_projects_path=(
+            config.telemetry.claude_projects_path if config else None
+        ),
+    )
     if sessions_dir is None:
         return profile
 

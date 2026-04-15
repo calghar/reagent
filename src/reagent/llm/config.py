@@ -59,7 +59,6 @@ class LLMConfig(BaseModel):
     temperature: float = 0.3
     max_output_tokens: int = 4096
     max_prompt_tokens: int = 2000
-    monthly_budget: float = 10.0
     routing: RoutingStrategy = RoutingStrategy.COST
     features: LLMFeatureFlags = Field(default_factory=LLMFeatureFlags)
     critic_model: str = "claude-haiku-4-20250414"

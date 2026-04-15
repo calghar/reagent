@@ -1,6 +1,7 @@
-import hashlib
 import json
 import logging
+import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -75,84 +76,115 @@ class ParsedSession(BaseModel):
     compact_events: list[dict[str, Any]] = Field(default_factory=list)
 
 
-def _find_project_hash(repo_path: Path) -> str:
-    """Compute the project hash Claude Code uses for directory mapping.
+def _find_project_dir_name(repo_path: Path) -> str:
+    """Compute the project directory name Claude Code uses.
+
+    Claude Code mangles the absolute resolved path by replacing every
+    non-alphanumeric character with ``-``.
 
     Args:
         repo_path: Absolute path to the repository.
 
     Returns:
-        First 40 hex characters of the SHA-256 hash of the resolved path.
+        The mangled directory name used under ``~/.claude/projects/``.
     """
-    return hashlib.sha256(str(repo_path.resolve()).encode()).hexdigest()[:40]
+    return re.sub(r"[^a-zA-Z0-9]", "-", str(repo_path.resolve()))
 
 
-def find_sessions_dir(repo_path: Path) -> Path | None:
-    """Find the sessions directory for a given repo.
+def _dir_has_sessions(project_dir: Path) -> bool:
+    """Return True if the directory contains at least one ``.jsonl`` file."""
+    return any(project_dir.glob("*.jsonl"))
 
-    Searches ~/.claude/projects/ for a matching project hash,
-    then falls back to scanning session files for a cwd match.
+
+def find_sessions_dir(
+    repo_path: Path,
+    claude_projects_path: Path | None = None,
+) -> Path | None:
+    """Find the Claude Code sessions directory for a given repo.
+
+    Claude Code stores session ``.jsonl`` files and UUID sub-directories
+    directly inside ``~/.claude/projects/<mangled-path>/``.
 
     Args:
         repo_path: Path to the repository.
+        claude_projects_path: Override for ``~/.claude/projects/``.  When
+            ``None``, falls back to ``$CLAUDE_PROJECTS_PATH`` env var, then
+            the default ``~/.claude/projects/``.
 
     Returns:
-        Path to the sessions directory, or None if not found.
+        Path to the project directory containing session files, or None.
     """
-    claude_dir = Path.home() / ".claude" / "projects"
-    if not claude_dir.exists():
+    if claude_projects_path is None:
+        env_val = os.environ.get("CLAUDE_PROJECTS_PATH", "").strip()
+        if env_val:
+            claude_projects_path = Path(env_val).expanduser()
+        else:
+            claude_projects_path = Path.home() / ".claude" / "projects"
+
+    if not claude_projects_path.exists():
         return None
 
-    # Try direct hash match first
-    project_hash = _find_project_hash(repo_path)
-    candidate = claude_dir / project_hash / "sessions"
-    if candidate.exists():
+    # Try direct name match (path-mangled convention)
+    mangled = _find_project_dir_name(repo_path)
+    candidate = claude_projects_path / mangled
+    if candidate.is_dir() and _dir_has_sessions(candidate):
         return candidate
 
     # Scan all project dirs for a session referencing this repo
-    return _scan_project_dirs(claude_dir, repo_path)
+    return _scan_project_dirs(claude_projects_path, repo_path)
 
 
 def _scan_project_dirs(claude_dir: Path, repo_path: Path) -> Path | None:
     """Scan project directories for sessions matching a repo.
 
     Args:
-        claude_dir: The ~/.claude/projects/ directory.
+        claude_dir: The ``~/.claude/projects/`` directory.
         repo_path: Target repository path to match against.
 
     Returns:
-        Path to a matching sessions directory, or None.
+        Path to a matching project directory, or None.
     """
     resolved = repo_path.resolve()
     for project_dir in claude_dir.iterdir():
         if not project_dir.is_dir():
             continue
-        sessions_dir = project_dir / "sessions"
-        if not sessions_dir.exists():
+        if not _dir_has_sessions(project_dir):
             continue
-        match = _check_sessions_for_repo(sessions_dir, resolved)
+        match = _check_sessions_for_repo(project_dir, resolved)
         if match:
             return match
     return None
 
 
-def _check_sessions_for_repo(sessions_dir: Path, resolved_repo: Path) -> Path | None:
+def _check_sessions_for_repo(
+    project_dir: Path, resolved_repo: Path
+) -> Path | None:
     """Check if any session in a directory references the given repo.
 
+    Reads the first few lines of each ``.jsonl`` file looking for a
+    ``cwd`` value that matches ``resolved_repo``.  Claude Code may write
+    ``queue-operation`` lines first (with ``cwd: null``), so a single-line
+    check is not enough.
+
     Args:
-        sessions_dir: Directory containing .jsonl session files.
+        project_dir: Directory containing ``.jsonl`` session files.
         resolved_repo: Resolved absolute path of the target repo.
 
     Returns:
-        The sessions_dir if a match is found, or None.
+        The project_dir if a match is found, or None.
     """
-    for session_file in sessions_dir.glob("*.jsonl"):
+    max_lines = 10
+    for session_file in project_dir.glob("*.jsonl"):
         try:
-            first = session_file.read_text(encoding="utf-8").split("\n", 1)[0]
-            data = json.loads(first)
-            cwd = data.get("cwd", "")
-            if cwd and Path(cwd).resolve() == resolved_repo:
-                return sessions_dir
+            with session_file.open(encoding="utf-8") as fh:
+                for _, line in zip(range(max_lines), fh, strict=False):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    data = json.loads(line)
+                    cwd = data.get("cwd")
+                    if cwd and Path(cwd).resolve() == resolved_repo:
+                        return project_dir
         except (json.JSONDecodeError, OSError):
             continue
     return None

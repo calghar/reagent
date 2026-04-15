@@ -51,8 +51,7 @@ def main() -> int:
                 f"  reagent inventory --repo {path}\n"
                 f"  reagent analyze {path}\n"
                 f"  reagent scan {path}\n"
-                f"  reagent init {path}\n"
-                f"  reagent baseline {path}\n"
+                f"  reagent evaluate --repo {path}\n"
             )
             return 1
         console.print(f"[red]Error:[/red] {exc}")
@@ -63,32 +62,26 @@ def main() -> int:
     return 0
 
 
-# assets (inventory, catalog, show, suggest, regenerate, profile, analyze,
-#         cost, harnesses, export, create, init, baseline, schema,
-#         extract-patterns, apply-pattern, specialize, validate, evaluate,
+# assets (inventory, catalog, show, suggest, profile, analyze,
+#         harnesses, export, schema,
+#         extract-patterns, apply-pattern, validate, evaluate,
 #         check-regression, variant, compare, promote, rollback-best)
 from reagent.cli.commands.assets import (  # noqa: E402
     analyze_cmd,
     apply_pattern_cmd,
-    baseline_cmd,
     catalog_cmd,
     check_regression_cmd,
     compare_cmd,
-    cost_cmd,
-    create_cmd,
     evaluate_cmd,
     export_cmd,
     extract_patterns_cmd,
     harnesses_cmd,
-    init_cmd,
     inventory,
     profile,
     promote_cmd,
-    regenerate_cmd,
     rollback_best_cmd,
     schema_group,
     show_item,
-    specialize_cmd,
     suggest,
     validate_cmd,
     variant_cmd,
@@ -98,18 +91,12 @@ cli.add_command(inventory)
 cli.add_command(catalog_cmd)
 cli.add_command(show_item)
 cli.add_command(suggest)
-cli.add_command(regenerate_cmd)
 cli.add_command(profile)
 cli.add_command(analyze_cmd)
-cli.add_command(cost_cmd)
 cli.add_command(harnesses_cmd)
 cli.add_command(export_cmd)
-cli.add_command(create_cmd)
-cli.add_command(init_cmd)
-cli.add_command(baseline_cmd)
 cli.add_command(extract_patterns_cmd)
 cli.add_command(apply_pattern_cmd)
-cli.add_command(specialize_cmd)
 cli.add_command(validate_cmd)
 cli.add_command(evaluate_cmd)
 cli.add_command(check_regression_cmd)
@@ -138,23 +125,10 @@ cli.add_command(rollback_cmd)
 cli.add_command(trust)
 cli.add_command(integrity)
 
-# hooks group
-from reagent.cli.commands.hooks import hooks  # noqa: E402
-
-cli.add_command(hooks)
-
 # instincts group
 from reagent.cli.commands.instincts import instincts_group  # noqa: E402
 
 cli.add_command(instincts_group)
-
-# loop group — also re-export _resolve_pending_by_id for test compatibility
-from reagent.cli.commands.loop import (  # noqa: E402
-    _resolve_pending_by_id as _resolve_pending_by_id,
-)
-from reagent.cli.commands.loop import loop_group  # noqa: E402
-
-cli.add_command(loop_group)
 
 # CI commands
 from reagent.cli.commands.ci import ci_cmd, drift_cmd  # noqa: E402
@@ -162,10 +136,6 @@ from reagent.cli.commands.ci import ci_cmd, drift_cmd  # noqa: E402
 cli.add_command(ci_cmd)
 cli.add_command(drift_cmd)
 
-# dashboard command
-from reagent.cli.commands.dashboard import dashboard_cmd  # noqa: E402
-
-cli.add_command(dashboard_cmd)
 
 if __name__ == "__main__":
     sys.exit(main())

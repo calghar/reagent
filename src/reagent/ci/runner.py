@@ -1,4 +1,3 @@
-import difflib
 import logging
 from collections.abc import Sequence
 from enum import StrEnum
@@ -152,7 +151,7 @@ def _apply_autofix(
     repo_path: Path,
     threshold: float,
 ) -> tuple[list[str], str]:
-    """Regenerate assets that are below threshold and write them to disk.
+    """Return empty results; auto-fix requires the removed creation module.
 
     Args:
         asset_results: Serialised per-asset result dicts.
@@ -160,38 +159,12 @@ def _apply_autofix(
         threshold: Quality threshold.
 
     Returns:
-        Tuple of (list of filenames written, unified diff string).
+        Tuple of (empty list, empty string).
     """
-    from reagent.creation.creator import regenerate_asset
-
-    fixes_applied: list[str] = []
-    diff_lines: list[str] = []
-
-    for ar in asset_results:
-        score = float(ar["score"])  # type: ignore[arg-type]
-        if score <= 0.0 or score >= threshold:
-            continue
-        asset_path = _resolve_asset_path(repo_path, str(ar["name"]), str(ar["type"]))
-        if asset_path is None or not asset_path.exists():
-            logger.warning("Cannot auto-fix: asset file not found for %s", ar["name"])
-            continue
-        try:
-            original = asset_path.read_text(encoding="utf-8")
-            draft = regenerate_asset(asset_path, repo_path)
-            asset_path.write_text(draft.content, encoding="utf-8")
-            fixes_applied.append(str(asset_path))
-            diff_lines.extend(
-                difflib.unified_diff(
-                    original.splitlines(keepends=True),
-                    draft.content.splitlines(keepends=True),
-                    fromfile=f"a/{asset_path.name}",
-                    tofile=f"b/{asset_path.name}",
-                )
-            )
-        except (OSError, ValueError) as exc:
-            logger.warning("Auto-fix failed for %s: %s", ar["name"], exc)
-
-    return fixes_applied, "".join(diff_lines)
+    logger.warning(
+        "Auto-fix is unavailable: the creation module has been removed"
+    )
+    return [], ""
 
 
 def _resolve_asset_path(repo_path: Path, name: str, asset_type: str) -> Path | None:

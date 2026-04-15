@@ -1,5 +1,4 @@
 import logging
-import sys
 from pathlib import Path
 
 import click
@@ -205,7 +204,7 @@ def _show_suggestion(identifier: str) -> None:
     Args:
         identifier: Suggestion number as a string.
     """
-    from reagent.creation.suggest import suggest_for_repo
+    from reagent.evaluation.suggest import suggest_for_repo
 
     try:
         num = int(identifier)
@@ -406,7 +405,7 @@ def show_item(asset_id: str, suggestion: bool) -> None:
 )
 def suggest(repo: Path, apply: bool, dry_run: bool) -> None:
     """Show actionable recommendations based on workflow profiles."""
-    from reagent.creation.suggest import (
+    from reagent.evaluation.suggest import (
         apply_suggestions,
         suggest_for_repo,
     )
@@ -451,42 +450,6 @@ def suggest(repo: Path, apply: bool, dry_run: bool) -> None:
         console.print(f"     {s.description}")
 
     console.print("\nUse `reagent show --suggestion <N>` for draft content.")
-
-
-@click.command("regenerate")
-@click.argument("asset", type=click.Path(exists=True, path_type=Path))
-@click.option(
-    "--repo",
-    type=click.Path(exists=True, path_type=Path),
-    default=".",
-    help="Repository root",
-)
-def regenerate_cmd(asset: Path, repo: Path) -> None:
-    """Regenerate an asset with evaluation feedback and instincts."""
-    from reagent.creation.creator import regenerate_asset
-
-    console.print(f"Regenerating {asset}...")
-    try:
-        draft = regenerate_asset(asset.resolve(), repo.resolve())
-    except (ValueError, FileNotFoundError) as e:
-        console.print(f"[red]{e}[/red]")
-        raise SystemExit(1) from None
-
-    # Show diff
-    original = asset.read_text(encoding="utf-8")
-    if original.strip() == draft.content.strip():
-        console.print("[green]No changes — asset is already optimal[/green]")
-        return
-
-    console.print(f"\n[bold]Regenerated {draft.name}[/bold]\n")
-    console.print(draft.content)
-
-    if not click.confirm("\nWrite this improved version?"):
-        console.print("Cancelled.")
-        return
-
-    path = draft.write()
-    console.print(f"[green]Wrote {path}[/green]")
 
 
 @click.command()
@@ -597,33 +560,6 @@ def analyze_cmd(repo: Path) -> None:
 
     output = profile_result.save()
     console.print(f"\nProfile saved to {output}")
-
-
-@click.command("cost")
-def cost_cmd() -> None:
-    """Show LLM generation costs (session and monthly)."""
-    from reagent.llm.costs import CostTracker
-
-    config = _load_config()
-    tracker = CostTracker(monthly_budget=config.llm.monthly_budget)
-
-    monthly = tracker.monthly_total()
-    budget = config.llm.monthly_budget
-    status = tracker.budget_status()
-    by_provider = tracker.cost_by_provider()
-
-    status_colors = {"ok": "green", "warning": "yellow", "exceeded": "red"}
-    color = status_colors.get(status.value, "white")
-
-    console.print(f"[bold]Monthly spend:[/bold] ${monthly:.4f} / ${budget:.2f}")
-    console.print(f"[bold]Status:[/bold] [{color}]{status.value.upper()}[/{color}]")
-
-    if by_provider:
-        console.print("\n[bold]By provider:[/bold]")
-        for provider, cost in sorted(by_provider.items()):
-            console.print(f"  {provider}: ${cost:.4f}")
-
-    tracker.close()
 
 
 @click.command("harnesses")
@@ -779,226 +715,6 @@ def export_cmd(
         console.print(f"[green]Wrote {dest_md}[/green]")
 
 
-@click.command("create")
-@click.argument(
-    "asset_type", type=click.Choice(["agent", "skill", "hook", "command", "rule"])
-)
-@click.option(
-    "--repo",
-    type=click.Path(exists=True, path_type=Path),
-    default=".",
-    help="Repo path",
-)
-@click.option("--name", default=None, help="Asset name")
-@click.option("--from", "from_pattern", default=None, help="Pattern name to use")
-@click.option("--from-outline", default=None, help="Outline file or - for stdin")
-@click.option("--interactive", is_flag=True, help="Interactive field-by-field mode")
-@click.option("--no-llm", is_flag=True, help="Skip LLM, use templates only")
-@click.option(
-    "--use-telemetry/--no-telemetry",
-    default=False,
-    help="Use telemetry and instincts for generation",
-)
-@click.option(
-    "--harness",
-    default=None,
-    help="Target harness format (claude-code, cursor, codex, opencode, all)",
-)
-@click.option(
-    "--skip-security",
-    is_flag=True,
-    default=False,
-    help="Skip post-generation security scan",
-)
-def create_cmd(
-    asset_type: str,
-    repo: Path,
-    name: str | None,
-    from_pattern: str | None,
-    from_outline: str | None,
-    interactive: bool,
-    no_llm: bool,
-    use_telemetry: bool,
-    harness: str | None,
-    skip_security: bool,
-) -> None:
-    """Create a new Claude Code asset with repo-aware generation."""
-    from reagent.creation.creator import create_asset
-
-    if no_llm:
-        console.print("[dim]Using enhanced templates (--no-llm).[/dim]")
-
-    # Read outline from file or stdin
-    outline_text: str | None = None
-    if from_outline:
-        if from_outline == "-":
-            outline_text = sys.stdin.read()
-        else:
-            outline_path = Path(from_outline)
-            if not outline_path.exists():
-                console.print(f"[red]File not found:[/red] {from_outline}")
-                raise SystemExit(1)
-            outline_text = outline_path.read_text(encoding="utf-8")
-
-    try:
-        draft = create_asset(
-            asset_type=asset_type,
-            repo_path=repo.resolve(),
-            name=name,
-            from_pattern=from_pattern,
-            from_outline=outline_text,
-            interactive=interactive,
-            no_llm=no_llm,
-            use_telemetry=use_telemetry,
-        )
-    except (ValueError, FileNotFoundError) as e:
-        console.print(f"[red]{e}[/red]")
-        raise SystemExit(1) from None
-
-    console.print(f"\n[bold]Generated {asset_type}:[/bold] {draft.name}")
-    console.print(f"[bold]Target:[/bold] {draft.target_path}\n")
-
-    # Show generation metadata if available
-    metadata = getattr(draft, "generation_metadata", None)
-    if metadata and metadata.tier == "llm":
-        console.print(
-            f"[dim]Provider: {metadata.provider} | "
-            f"Model: {metadata.model} | "
-            f"Cost: ${metadata.cost_usd:.4f} | "
-            f"Tokens: {metadata.input_tokens}in/{metadata.output_tokens}out | "
-            f"Latency: {metadata.latency_ms}ms[/dim]\n"
-        )
-
-    console.print(draft.content)
-
-    # Security scan (unless skipped)
-    if not skip_security:
-        _show_content_security_grade(draft.content)
-
-    if not click.confirm("\nWrite this asset?"):
-        console.print("Cancelled.")
-        return
-
-    path = draft.write()
-    console.print(f"[green]Wrote {path}[/green]")
-
-    # Optionally adapt to other harness formats
-    if harness:
-        _write_harness_files(draft.content, asset_type, repo.resolve(), harness)
-
-
-@click.command("init")
-@click.argument("repo", type=click.Path(exists=True, path_type=Path))
-@click.option(
-    "--harness",
-    default=None,
-    help="Target harness format (claude-code, cursor, codex, opencode, all)",
-)
-def init_cmd(repo: Path, harness: str | None) -> None:
-    """Generate smart default assets based on repo analysis."""
-    from reagent.creation.creator import generate_init_assets
-
-    console.print(f"Analyzing {repo.resolve()}...")
-    drafts = generate_init_assets(repo)
-
-    if not drafts:
-        console.print("[green]No assets to generate -- repo is well-configured[/green]")
-        return
-
-    console.print(f"\n[bold]{len(drafts)} asset(s) to generate:[/bold]\n")
-    for draft in drafts:
-        console.print(f"  [cyan]{draft.asset_type}[/cyan]: {draft.target_path}")
-        # Show content preview
-        preview = draft.content[:200].replace("\n", "\\n")
-        console.print(f"    {preview}...\n")
-
-    if not click.confirm("Write these assets?"):
-        console.print("Cancelled.")
-        return
-
-    for draft in drafts:
-        path = draft.write()
-        console.print(f"  [green]Wrote {path}[/green]")
-
-    # Optionally adapt to other harness formats
-    if harness:
-        for draft in drafts:
-            _write_harness_files(
-                draft.content, draft.asset_type, repo.resolve(), harness
-            )
-
-
-@click.command("baseline")
-@click.argument(
-    "root",
-    type=click.Path(exists=True, path_type=Path),
-)
-@click.option(
-    "--max-depth",
-    type=int,
-    default=2,
-    help="Max directory depth to search for repos",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show what would be generated without writing",
-)
-def baseline_cmd(
-    root: Path,
-    max_depth: int,
-    dry_run: bool,
-) -> None:
-    """Generate baseline .claude assets for all repos under ROOT.
-
-    Discovers repositories by looking for common project markers
-    (e.g. .git, pyproject.toml, package.json, Cargo.toml, go.mod)
-    and generates smart default assets for each.
-    """
-    from reagent.creation.creator import generate_init_assets
-
-    root = root.resolve()
-    repos = _discover_repos(root, max_depth)
-
-    if not repos:
-        console.print(f"[yellow]No repos found under {root}[/yellow]")
-        return
-
-    console.print(f"Found [bold]{len(repos)}[/bold] repo(s) under {root}\n")
-
-    total_written = 0
-    for repo_path in repos:
-        rel = repo_path.relative_to(root)
-        logger.info("Generating baseline for %s", repo_path)
-
-        try:
-            drafts = generate_init_assets(repo_path)
-        except Exception:
-            logger.exception("Failed: %s", repo_path)
-            console.print(f"  [red]{rel}[/red]: error (see log)")
-            continue
-
-        if not drafts:
-            console.print(f"  [dim]{rel}[/dim]: up to date")
-            continue
-
-        types = ", ".join(d.asset_type for d in drafts)
-        console.print(f"  [cyan]{rel}[/cyan]: {types}")
-
-        if not dry_run:
-            for draft in drafts:
-                draft.write()
-                total_written += 1
-
-    if dry_run:
-        console.print("\n[yellow]Dry run — no files written[/yellow]")
-    else:
-        console.print(
-            f"\n[green]Done:[/green] {total_written} asset(s)"
-            f" across {len(repos)} repo(s)"
-        )
-
-
 @click.command("extract-patterns")
 def extract_patterns_cmd() -> None:
     """Scan all cataloged assets and extract reusable patterns."""
@@ -1073,32 +789,6 @@ def apply_pattern_cmd(pattern_name: str, repo: Path) -> None:
         return
 
     console.print("[green]Pattern applied.[/green]")
-
-
-@click.command("specialize")
-@click.argument("repo", type=click.Path(exists=True, path_type=Path))
-def specialize_cmd(repo: Path) -> None:
-    """Apply global assets with repo-specific adaptation."""
-    from reagent.creation.specializer import specialize_repo
-
-    console.print(f"Specializing {repo.resolve()}...")
-    result = specialize_repo(repo)
-
-    if not result.drafts:
-        console.print("[yellow]No global assets found to specialize[/yellow]")
-        return
-
-    console.print(f"\n[bold]{result.count} asset(s) to write:[/bold]\n")
-    for draft in result.drafts:
-        console.print(f"  [cyan]{draft.asset_type}[/cyan]: {draft.target_path}")
-
-    if not click.confirm("\nWrite these assets?"):
-        console.print("Cancelled.")
-        return
-
-    for draft in result.drafts:
-        path = draft.write()
-        console.print(f"  [green]Wrote {path}[/green]")
 
 
 @click.command("validate")

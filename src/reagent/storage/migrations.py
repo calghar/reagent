@@ -68,12 +68,27 @@ def _v2_to_v3(conn: sqlite3.Connection) -> None:
     )
 
 
+def _v3_to_v4(conn: sqlite3.Connection) -> None:
+    """Add asset_content_cache for serving content when files are inaccessible."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS asset_content_cache (
+            asset_path   TEXT PRIMARY KEY,
+            content      TEXT NOT NULL,
+            repo_path    TEXT NOT NULL,
+            cached_at    TEXT NOT NULL
+        );
+        """
+    )
+
+
 # Ordered list of migrations.  Index = version that migration produces.
 # e.g. _MIGRATIONS[0] migrates from v0 → v1.
 _MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (1, _v0_to_v1),
     (2, _v1_to_v2),
     (3, _v2_to_v3),
+    (4, _v3_to_v4),
 ]
 
 CURRENT_VERSION: int = _MIGRATIONS[-1][0] if _MIGRATIONS else 0

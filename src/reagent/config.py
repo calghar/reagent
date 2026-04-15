@@ -31,6 +31,9 @@ class TelemetryConfig(BaseModel):
     event_store: Path = Field(
         default_factory=lambda: Path.home() / ".reagent" / "events.jsonl"
     )
+    claude_projects_path: Path = Field(
+        default_factory=lambda: Path.home() / ".claude" / "projects"
+    )
     hash_file_paths: bool = False
     exclude_content: bool = False
     retention_days: int = 90
@@ -94,13 +97,6 @@ class InstinctTuning(BaseModel):
     )
 
 
-class BudgetTuning(BaseModel):
-    """Tunable thresholds for budget enforcement."""
-
-    warning_ratio: float = 0.8
-    exceeded_ratio: float = 1.0
-
-
 class EvaluationTuning(BaseModel):
     """Tunable normalization constants for quality evaluation."""
 
@@ -122,15 +118,6 @@ class RouterTuning(BaseModel):
     circuit_breaker_recovery_seconds: int = 300
 
 
-class ApiTuning(BaseModel):
-    """Tunable pagination and limit constants for the API."""
-
-    default_page_size: int = 20
-    max_page_size: int = 200
-    default_eval_limit: int = 500
-    max_loop_results: int = 100
-
-
 class CacheTuning(BaseModel):
     """Tunable constants for the generation cache."""
 
@@ -141,10 +128,8 @@ class TuningConfig(BaseModel):
     """Top-level tuning configuration aggregating all sub-models."""
 
     instinct: InstinctTuning = Field(default_factory=InstinctTuning)
-    budget: BudgetTuning = Field(default_factory=BudgetTuning)
     evaluation: EvaluationTuning = Field(default_factory=EvaluationTuning)
     router: RouterTuning = Field(default_factory=RouterTuning)
-    api: ApiTuning = Field(default_factory=ApiTuning)
     cache: CacheTuning = Field(default_factory=CacheTuning)
 
 
