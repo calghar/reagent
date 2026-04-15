@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "reagent"
 version = "0.1.0"
-description = "Manage, secure, and evolve Claude Code assets across repositories"
+description = "Scan, evaluate, and secure AI agent assets across repositories"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.13"
 authors = [
     { name = "calghar" },
 ]
-keywords = ["claude-code", "ai-agents", "devtools", "asset-management"]
+keywords = ["claude-code", "ai-agents", "devtools", "security", "quality-gate"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",

@@ -25,7 +25,7 @@ Ruflo is a multi-agent orchestration platform for Claude Code. It coordinates 10
 
 ### Reagent
 
-Reagent is a CLI tool for managing the configuration files that tools like Claude Code produce and consume. It inventories `.claude/` directories, catalogs assets, profiles usage from session transcripts, extracts reusable patterns, generates repo-specialized assets, and measures quality. Reagent is not an AI assistant or agent orchestrator — it manages the assets those systems use.
+Reagent is a CLI tool for managing the configuration files that tools like Claude Code produce and consume. It inventories `.claude/` directories, catalogs assets, profiles usage from session transcripts, extracts reusable patterns, evaluates quality, and detects security issues. Reagent is not an AI assistant or agent orchestrator — it manages the assets those systems use.
 
 ## How They Complement Each Other
 

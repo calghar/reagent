@@ -39,7 +39,6 @@ nav:
   - User Guide:
       - CLI Reference: cli-reference.md
       - Configuration: configuration.md
-      - Asset Creation: asset-creation.md
       - Evaluation: evaluation.md
       - CI Integration: ci-integration.md
       - Security Scanning: security-scanning.md

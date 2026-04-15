@@ -10,7 +10,7 @@ Reagent stores its configuration at `~/.reagent/config.yaml`. If this file does 
 ├── catalog.jsonl         # Asset catalog
 ├── instincts.json        # Extracted instincts (learned patterns)
 ├── events.jsonl          # Telemetry event log
-├── reagent.db            # SQLite database (evaluations, loops, costs)
+├── reagent.db            # SQLite database (evaluations, snapshots, trust)
 ├── reagent.log           # Application log
 ├── patterns/             # Extracted reusable patterns
 ├── workflows/            # Repo analysis profiles
@@ -113,14 +113,14 @@ Controls the static analysis scanner and import gate behavior.
 ```yaml
 security:
   rules_path: null             # Custom rules file (null = bundled rules)
-  auto_scan: true              # Scan on import/create
+  auto_scan: true              # Scan on import
   block_on_critical: true      # Block operations on critical findings
 ```
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `rules_path` | path or null | `null` | Path to custom security rules file; `null` uses bundled rules |
-| `auto_scan` | bool | `true` | Automatically scan assets on import and creation |
+| `auto_scan` | bool | `true` | Automatically scan assets on import |
 | `block_on_critical` | bool | `true` | Block operations when critical findings are detected |
 
 ### `code_intel` — Code Intelligence
@@ -193,8 +193,6 @@ llm:
   temperature: 0.3
   max_output_tokens: 4096
   max_prompt_tokens: 2000
-  monthly_budget: 10.0
-  routing: cost
   critic_model: claude-haiku-4-20250414
   features:
     enabled: true
@@ -216,8 +214,6 @@ llm:
 | `temperature` | float | `0.3` | Generation temperature (0.0–1.0) |
 | `max_output_tokens` | int | `4096` | Maximum tokens in LLM response |
 | `max_prompt_tokens` | int | `2000` | Maximum tokens in the prompt |
-| `monthly_budget` | float | `10.0` | Monthly spending cap in USD |
-| `routing` | string | `"cost"` | Routing strategy: `cost`, `latency`, or `fixed` |
 | `critic_model` | string | `"claude-haiku-4-20250414"` | Model used for critic review pass |
 | `fallback` | list | `[]` | Ordered fallback providers (each with `provider` and `model`) |
 | `api_keys` | dict | `{}` | API keys by provider name (env vars take precedence) |
@@ -256,20 +252,12 @@ Environment variables override config file values. Set them in your shell profil
 | `REAGENT_LLM_ENABLED` | Disable LLM generation | `0` or `false` to disable |
 | `OLLAMA_HOST` | Ollama server URL | `http://localhost:11434` (default) |
 
-### Dashboard & API
+### Storage & Telemetry
 
 | Variable | Description | Example |
 |---|---|---|
 | `REAGENT_DB_PATH` | SQLite database path override | `/path/to/reagent.db` |
-| `REAGENT_REPOS_PATH` | Host path to your repositories. **Required** for container deployments — mounted into the container at `/home/app/repos`. | `~/Development` |
 | `CLAUDE_PROJECTS_PATH` | Claude Code sessions directory for instinct extraction. Override when sessions are stored in a non-default location. | `~/.claude/projects` (default) |
-| `REAGENT_CORS_ORIGINS` | Comma-separated CORS allowed origins | `http://localhost:5173,http://localhost:3000` |
-
-### CI
-
-| Variable | Description | Example |
-|---|---|---|
-| `GITHUB_ACTIONS` | Auto-detected in GitHub Actions (enables CI formatting) | `true` |
 
 ### Provider Auto-Detection
 
@@ -300,7 +288,6 @@ export ANTHROPIC_API_KEY="sk-ant-api03-..."
 llm:
   provider: google
   model: gemini-2.0-flash
-  monthly_budget: 5.0
   features:
     use_cache: true
   fallback:
@@ -342,7 +329,6 @@ security:
 ```yaml
 llm:
   provider: anthropic
-  monthly_budget: 20.0
   features:
     enabled: true
     use_critic: true
@@ -353,7 +339,7 @@ security:
 
 ### `tuning` — Scoring and Threshold Constants
 
-Fine-tune scoring algorithms, budget thresholds, router timers, API pagination, and cache settings. All values have sensible defaults — you only need to override the ones you want to change.
+Fine-tune scoring algorithms, router timers, and cache settings. All values have sensible defaults — you only need to override the ones you want to change.
 
 ```yaml
 tuning:
@@ -373,9 +359,6 @@ tuning:
     trust_tier_weights:
       managed: 0.8
       workspace: 0.6
-  budget:
-    warning_ratio: 0.8
-    exceeded_ratio: 1.0
   evaluation:
     max_invocations_per_week: 5.0
     max_turn_efficiency: 19.0
@@ -384,11 +367,6 @@ tuning:
     health_check_interval_seconds: 60
     circuit_breaker_threshold: 3
     circuit_breaker_recovery_seconds: 300
-  api:
-    default_page_size: 20
-    max_page_size: 200
-    default_eval_limit: 500
-    max_loop_results: 100
   cache:
     default_max_age_days: 7
 ```
@@ -411,13 +389,6 @@ tuning:
 | `default_top_k` | int | `5` | Default number of instincts returned by relevance query |
 | `trust_tier_weights` | dict | `{managed: 0.8, workspace: 0.6}` | Score multipliers by trust tier |
 
-#### `tuning.budget` — Budget Enforcement
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `warning_ratio` | float | `0.8` | Budget usage ratio that triggers a warning |
-| `exceeded_ratio` | float | `1.0` | Budget usage ratio that triggers exceeded status |
-
 #### `tuning.evaluation` — Quality Evaluation
 
 | Field | Type | Default | Description |
@@ -433,15 +404,6 @@ tuning:
 | `health_check_interval_seconds` | int | `60` | Seconds between provider health checks |
 | `circuit_breaker_threshold` | int | `3` | Consecutive failures before opening circuit |
 | `circuit_breaker_recovery_seconds` | int | `300` | Seconds to wait before retrying an open circuit |
-
-#### `tuning.api` — API Pagination
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `default_page_size` | int | `20` | Default items per page for paginated endpoints |
-| `max_page_size` | int | `200` | Maximum allowed page size |
-| `default_eval_limit` | int | `500` | Default limit for evaluation queries |
-| `max_loop_results` | int | `100` | Maximum loop/generation results returned |
 
 #### `tuning.cache` — Generation Cache
 
