@@ -90,3 +90,5 @@ site/
 /agents/
 scripts/
 .c*
+.claude/CLAUDE.md
+.claude/skills/react-typescript.md
