@@ -156,6 +156,11 @@ from reagent.cli.commands.telemetry_cmd import telemetry  # noqa: E402
 
 cli.add_command(telemetry)
 
+# BATT runtime shield
+from reagent.cli.commands.shield import shield  # noqa: E402
+
+cli.add_command(shield)
+
 
 if __name__ == "__main__":
     sys.exit(main())
