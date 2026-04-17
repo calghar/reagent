@@ -60,14 +60,6 @@ class AttestationConfig(BaseModel):
     corpus_path: Path | None = None
 
 
-class CodeIntelConfig(BaseModel):
-    # TODO: Wire to MCP server integration when gitnexus support is implemented.
-    enabled: bool = False
-    gitnexus_command: str = "npx -y gitnexus@latest mcp"
-    timeout: int = 30
-    fallback_on_error: bool = True
-
-
 class LogConfig(BaseModel):
     level: str = "WARNING"
     file: Path = Field(
@@ -152,7 +144,6 @@ class AgentGuardConfig(BaseModel):
     versioning: VersioningConfig = Field(default_factory=VersioningConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     attestation: AttestationConfig = Field(default_factory=AttestationConfig)
-    code_intel: CodeIntelConfig = Field(default_factory=CodeIntelConfig)
     llm: Any = Field(default=None)
     harness: HarnessConfig = Field(default_factory=HarnessConfig)
     tuning: TuningConfig = Field(default_factory=TuningConfig)

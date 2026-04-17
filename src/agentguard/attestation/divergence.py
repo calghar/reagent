@@ -1,6 +1,5 @@
 import enum
 import logging
-import statistics
 from typing import Protocol
 
 from pydantic import BaseModel, Field
@@ -149,12 +148,3 @@ def _iqr_bounds(mean: float, std: float, k: float) -> tuple[float, float]:
     q3 = mean + q_offset
     iqr = q3 - q1
     return q1 - k * iqr, q3 + k * iqr
-
-
-def mean_std(values: list[float]) -> tuple[float, float]:
-    """Helper: compute mean and population stdev for a list of floats."""
-    if not values:
-        return 0.0, 0.0
-    mean = float(statistics.fmean(values))
-    std = float(statistics.pstdev(values)) if len(values) > 1 else 0.0
-    return mean, std

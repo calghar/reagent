@@ -123,25 +123,6 @@ security:
 | `auto_scan` | bool | `true` | Automatically scan assets on import |
 | `block_on_critical` | bool | `true` | Block operations when critical findings are detected |
 
-### `code_intel` — Code Intelligence
-
-Controls integration with the GitNexus MCP server for enhanced code analysis.
-
-```yaml
-code_intel:
-  enabled: false
-  gitnexus_command: "npx -y gitnexus@latest mcp"
-  timeout: 30
-  fallback_on_error: true
-```
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | bool | `false` | Enable GitNexus code intelligence integration |
-| `gitnexus_command` | string | `"npx -y gitnexus@latest mcp"` | Command to start the GitNexus MCP server |
-| `timeout` | int | `30` | Timeout in seconds for code intelligence queries |
-| `fallback_on_error` | bool | `true` | Fall back to basic analysis when GitNexus fails |
-
 !!! note
     Requires the `code-intel` extra: `pip install agentguard[code-intel]`
 
