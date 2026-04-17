@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "agentguard"
 version = "0.1.0"
-description = "Scan, evaluate, and secure AI agent assets across repositories"
+description = "Behavioral attestation and runtime shield for AI agent configuration assets"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.13"
@@ -27,13 +27,10 @@ dependencies = [
     "pydantic>=2.0",
     "rich>=13.0",
     "jsonschema>=4.20",
-    "httpx>=0.27",
-    "jinja2>=3.1",
     "cryptography>=42",
 ]
 
 [project.optional-dependencies]
-code-intel = ["mcp>=1.0"]
 docs = [
     "mkdocs-material>=9.5",
 ]

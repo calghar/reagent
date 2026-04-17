@@ -35,14 +35,6 @@ class TestCLI:
         assert result.exit_code == 0
         assert "ASSET_ID" in result.output
 
-    def test_schema_show_preserves_regex(self) -> None:
-        """schema show must not strip bracket chars like [a-z] via Rich markup."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["schema", "show", "agent"])
-        assert result.exit_code == 0
-        # The agent schema has a name pattern with character classes
-        assert "[a-z]" in result.output
-
     def test_inventory_single_repo(
         self, sample_claude_dir: Path, tmp_path: Path
     ) -> None:

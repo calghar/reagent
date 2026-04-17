@@ -1,4 +1,3 @@
-from agentguard.security.gate import SecurityGate, SecurityIssue, SecurityResult
 from agentguard.security.governance import (
     check_integrity,
     run_integrity_check_with_logging,
@@ -21,9 +20,6 @@ from agentguard.security.trust import TrustLevel, TrustStore
 
 __all__ = [
     "ScanReport",
-    "SecurityGate",
-    "SecurityIssue",
-    "SecurityResult",
     "Severity",
     "SnapshotStore",
     "TrustLevel",

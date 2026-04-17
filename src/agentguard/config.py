@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import logging
 from pathlib import Path
-from typing import Any, Self
+from typing import Self
 
 import yaml
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -80,26 +78,6 @@ class HarnessConfig(BaseModel):
     generate: list[str] = Field(default_factory=lambda: ["claude-code"])
 
 
-class InstinctTuning(BaseModel):
-    """Tunable constants for instinct scoring and evolution."""
-
-    category_match_boost: float = 1.5
-    recency_half_life_days: float = 180.0
-    name_overlap_factor: float = 0.1
-    confidence_increment: float = 0.1
-    confidence_divisor: int = 8
-    confidence_cap: float = 0.8
-    correction_rate_threshold: float = 0.15
-    quality_score_threshold: int = 70
-    confidence_reward: float = 0.05
-    confidence_penalty: float = 0.1
-    min_use_count_for_promotion: int = 5
-    default_top_k: int = 5
-    trust_tier_weights: dict[str, float] = Field(
-        default_factory=lambda: {"managed": 0.8, "workspace": 0.6}
-    )
-
-
 class EvaluationTuning(BaseModel):
     """Tunable normalization constants for quality evaluation."""
 
@@ -113,27 +91,10 @@ class EvaluationTuning(BaseModel):
     critic_revision_threshold: int = 7
 
 
-class RouterTuning(BaseModel):
-    """Tunable timing constants for the provider router."""
-
-    health_check_interval_seconds: int = 60
-    circuit_breaker_threshold: int = 3
-    circuit_breaker_recovery_seconds: int = 300
-
-
-class CacheTuning(BaseModel):
-    """Tunable constants for the generation cache."""
-
-    default_max_age_days: int = 7
-
-
 class TuningConfig(BaseModel):
     """Top-level tuning configuration aggregating all sub-models."""
 
-    instinct: InstinctTuning = Field(default_factory=InstinctTuning)
     evaluation: EvaluationTuning = Field(default_factory=EvaluationTuning)
-    router: RouterTuning = Field(default_factory=RouterTuning)
-    cache: CacheTuning = Field(default_factory=CacheTuning)
 
 
 class AgentGuardConfig(BaseModel):
@@ -144,19 +105,8 @@ class AgentGuardConfig(BaseModel):
     versioning: VersioningConfig = Field(default_factory=VersioningConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     attestation: AttestationConfig = Field(default_factory=AttestationConfig)
-    llm: Any = Field(default=None)
     harness: HarnessConfig = Field(default_factory=HarnessConfig)
     tuning: TuningConfig = Field(default_factory=TuningConfig)
-
-    @model_validator(mode="after")
-    def _init_llm(self) -> AgentGuardConfig:
-        from agentguard.llm.config import LLMConfig
-
-        if self.llm is None:
-            self.llm = LLMConfig()
-        elif isinstance(self.llm, dict):
-            self.llm = LLMConfig(**self.llm)
-        return self
 
     @classmethod
     def load(cls, path: Path | None = None) -> Self:

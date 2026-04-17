@@ -206,7 +206,7 @@ class TestDriftDetector:
             script.write_text("#!/bin/bash\necho deploy\n", encoding="utf-8")
 
         detector = DriftDetector()
-        reports = detector._check_stale(tmp_path)
+        reports = detector.detect(tmp_path)
 
         if expect_stale:
             assert any(
@@ -215,104 +215,10 @@ class TestDriftDetector:
         else:
             assert len(reports) == 0
 
-    @pytest.mark.parametrize(
-        ("agent_exists", "expected_count"),
-        [
-            pytest.param(False, 1, id="missing_ci_agent"),
-            pytest.param(True, 0, id="ci_agent_exists"),
-        ],
-    )
-    def test_check_missing_ci_asset(
-        self, tmp_path: Path, agent_exists: bool, expected_count: int
-    ) -> None:
-        profile = MagicMock()
-        profile.has_ci = True
-        profile.has_api_routes = False
-        profile.test_config.runner = None
-
-        agents_dir = tmp_path / ".claude" / "agents"
-        if agent_exists:
-            agents_dir.mkdir(parents=True)
-            (agents_dir / "ci-agent.md").write_text("# CI Agent\n", encoding="utf-8")
-
-        detector = DriftDetector()
-        reports = detector._check_missing_ci_asset(profile, agents_dir)
-
-        assert len(reports) == expected_count
-        if expected_count > 0:
-            assert reports[0].drift_type == "missing"
-            assert "CI" in reports[0].details or "ci" in reports[0].details.lower()
-
-    @pytest.mark.parametrize(
-        ("env_set", "expected_count"),
-        [
-            pytest.param(False, 1, id="missing_env_var"),
-            pytest.param(True, 0, id="env_var_set"),
-        ],
-    )
-    def test_config_drift(
-        self,
-        tmp_path: Path,
-        monkeypatch: pytest.MonkeyPatch,
-        env_set: bool,
-        expected_count: int,
-    ) -> None:
-        _ = tmp_path
-        if env_set:
-            monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
-        else:
-            monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-
-        config_data = {"llm": {"provider": "anthropic"}}
-        with patch(
-            "agentguard.ci.drift._load_agentguard_config", return_value=config_data
-        ):
-            detector = DriftDetector()
-            reports = detector._check_config_drift()
-
-        assert len(reports) == expected_count
-        if expected_count == 1:
-            assert reports[0].drift_type == "config_drift"
-            assert "ANTHROPIC_API_KEY" in reports[0].details
-
     def test_detect_empty_repo_no_drift(self, tmp_path: Path) -> None:
         detector = DriftDetector()
-        with patch("agentguard.ci.drift._load_agentguard_config", return_value=None):
-            reports = detector.detect(tmp_path)
-        stale = [r for r in reports if r.drift_type == "stale"]
-        config_drift = [r for r in reports if r.drift_type == "config_drift"]
-        assert stale == []
-        assert config_drift == []
-
-    def test_detect_missing_api_agent(self, tmp_path: Path) -> None:
-        profile = MagicMock()
-        profile.has_ci = False
-        profile.has_api_routes = True
-        profile.test_config.runner = None
-
-        agents_dir = tmp_path / ".claude" / "agents"
-        detector = DriftDetector()
-        reports = detector._check_missing_api_asset(profile, agents_dir)
-
-        assert len(reports) == 1
-        assert reports[0].drift_type == "missing"
-        assert "API" in reports[0].details or "api" in reports[0].details.lower()
-
-    def test_detect_missing_test_skill(self, tmp_path: Path) -> None:
-        profile = MagicMock()
-        profile.has_ci = False
-        profile.has_api_routes = False
-        test_cfg = MagicMock()
-        test_cfg.runner = "pytest"
-        profile.test_config = test_cfg
-
-        skills_dir = tmp_path / ".claude" / "skills"
-        detector = DriftDetector()
-        reports = detector._check_missing_test_skill(profile, skills_dir)
-
-        assert len(reports) == 1
-        assert reports[0].drift_type == "missing"
-        assert "pytest" in reports[0].details
+        reports = detector.detect(tmp_path)
+        assert reports == []
 
 
 class TestCIReporter:

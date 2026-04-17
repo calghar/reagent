@@ -2,7 +2,7 @@
 <h1 align="center">AgentGuard</h1>
 
 <p align="center">
-  <strong>Automated asset synthesis and optimization engine for AI agent harnesses.</strong>
+  <strong>Behavioral attestation and runtime shield for AI agent configuration assets.</strong>
 </p>
 
 <p align="center">
@@ -13,57 +13,32 @@
 
 ---
 
-AgentGuard manages the full lifecycle of AI agent assets — agents, skills, hooks, commands, and rules. It inventories your `.claude/` directories, profiles actual usage from session transcripts, evaluates quality over time, detects security issues, and exports to multiple harness formats.
+AgentGuard attests the behavior of AI agent configuration assets (agents, skills, hooks, commands, rules), detects runtime divergence from the attested baseline, and enforces trust-tier-gated tool authority at invocation time. Three layers — config-time attestation, runtime divergence, and causal incident lineage — give security teams a signed baseline for every asset and auto-demote trust tiers when behavior diverges.
 
 ## Features
 
-### Asset Management
+### Layer 1 — Config-time Attestation
 
-- **Inventory & Catalog** — Scan and index agents, skills, hooks, commands, rules, and settings into a searchable JSONL catalog with content hashing
-- **Schema Validation** — Validate assets against JSON Schema with bundled defaults and update support
-
-### AI-Powered Features
-
-- **Multi-Provider LLM** — Leverage Anthropic, OpenAI, Gemini, or Ollama via `httpx` (no vendor SDKs) for intelligent suggestions and analysis
-- **Template Fallback** — Falls back to rule-based template generation when no API key is configured
-- **Instinct System** — Learns patterns from session history to improve future recommendations; extract, prune, import, and export instincts
-
-### Multi-Harness Support
-
-- **Cross-Harness Export** — Generate assets for **Claude Code**, **Cursor**, **Codex**, and **OpenCode** from a single canonical source
-- **Auto-Detection** — Automatically detect which harness a repo uses based on directory structure
-- **AGENTS.md Generation** — Produce a universal AGENTS.md overview for any repo
-
-### Quality & Evaluation
-
+- **Inventory & Catalog** — Scan and index agents, skills, hooks, commands, and rules into a content-hashed JSONL catalog
+- **Static Analysis** — 25 security rules for prompt injection, exfiltration, and unsafe tool grants, each mapped to MITRE ATLAS and OWASP AST10 taxonomies (see `docs/threat-model.md`)
+- **Behavioral Sandbox Replay (BSR)** — Drive the real Claude Code CLI in a mediated sandbox, capture a five-dimension `BehavioralFingerprint`, sign it with ed25519 (see `docs/attestation.md`)
+- **Counterfactual Replay Gate (CRG)** — `agentguard counterfactual` replays proposed revisions through the sandbox and blocks merges when behavior expands beyond the attested baseline
 - **Quality Scoring** — Per-asset quality metrics with configurable thresholds
-- **Regression Detection** — Check sessions for quality regressions against baselines
-- **A/B Testing** — Create variants, compare metrics, and promote winners
-- **Pattern Extraction** — Cluster similar assets and generate reusable parameterized templates
 
-### Security
+### Layer 2 — Runtime Divergence & Shield
 
-- **Static Analysis** — 20+ security rules for prompt injection, exfiltration, and unsafe patterns, each mapped to MITRE ATLAS and OWASP AST10 taxonomies (see `docs/threat-model.md`)
-- **Behavioral Attestation** — Drive the real Claude Code CLI in a mediated sandbox, capture a five-dimension `BehavioralFingerprint`, and sign it with ed25519 (see `docs/attestation.md`)
-- **Runtime Divergence Detection** — IQR-based `DivergenceDetector` flags new tool calls, new egress hosts, and new hook subprocess trees with MITRE ATLAS tagging
-- **Counterfactual Replay Gate** — `agentguard counterfactual` replays proposed revisions through the sandbox and blocks merges when behavior expands beyond the attested baseline
+- **HLOT Telemetry** — `agentguard telemetry hlot` emits `agentguard.asset.*` attributes (content hash, fingerprint hash, trust tier) on every agent-session OTel span
+- **Runtime Fingerprint Divergence Detection (RFDD)** — `agentguard diverge` flags new tool calls, new egress hosts, and new hook subprocess trees with MITRE ATLAS tagging
 - **BATT Runtime Shield** — `agentguard shield` enforces trust-tier-gated tool authority at invocation time via a Claude Code `PreToolUse` hook (see `docs/shield.md`)
-- **HLOT Telemetry** — `agentguard telemetry hlot` emits `agentguard.asset.*` attributes to stamp every agent-session OTel span with content hash, fingerprint hash, and trust tier
-- **AgentShield Integration** — Optional `npx agentshield` scanning for deeper analysis
-- **Trust Management** — 4-level trust model with promotion and integrity verification
+- **Trust Management** — 4-level trust model (UNTRUSTED/NATIVE/REVIEWED/VERIFIED) with auto-demotion on divergence
+
+### Layer 3 — Supply-chain & CI
+
+- **CI Pipeline** — `agentguard ci` exits with structured codes: 0 = pass, 1 = quality fail, 2 = security fail, 3 = behavioral divergence at merge time
+- **Drift Detection** — Find stale file references in tracked assets
+- **Snapshot & Rollback** — Content-addressed history with rollback to any prior version
 - **Import Gates** — Security scanning on imported assets from URLs, gists, or local paths
-- **Snapshot & Rollback** — Track asset history and rollback to any previous version
-
-### CI/CD Integration
-
-- **CI Pipeline** — Run `agentguard ci` as a quality gate in any CI system with configurable thresholds
-- **Drift Detection** — Find stale, outdated, or missing assets that have fallen behind repo changes
-- **Exit Codes** — Structured exit codes: 0 = pass, 1 = quality fail, 2 = security fail, 3 = behavioral divergence at merge time
-
-### Telemetry & Profiling
-
-- **Session Profiling** — Parse transcripts to detect workflows, correction hotspots, and coverage gaps
-- **Actionable Suggestions** — Get recommendations based on workflow profiles, optionally auto-apply them
+- **Integrity Verification** — Detect post-merge tampering against the attested hash
 
 ## Installation
 
@@ -100,74 +75,28 @@ pip install agentguard
 # Scan a repo and build the asset catalog
 agentguard inventory --repo .
 
-# Evaluate asset quality
-agentguard evaluate --repo .
+# Static security scan
+agentguard scan .claude
 
-# Get improvement suggestions
-agentguard suggest --repo .
+# Sign a behavioral fingerprint for an asset
+agentguard attest sign .claude/agents/reviewer.md
 
-# Run a security audit
-agentguard audit --repo .
-
-# Check for stale or missing assets
+# Check for stale file references
 agentguard drift --repo .
 ```
-
-## Configuration
-
-### LLM Provider Setup
-
-Set an API key as an environment variable:
-
-```bash
-export ANTHROPIC_API_KEY=..   # Anthropic (default)
-export OPENAI_API_KEY=s...    # OpenAI
-export GOOGLE_API_KEY=...     # Gemini
-```
-
-Additional environment variables: `AGENTGUARD_LLM_PROVIDER`, `AGENTGUARD_LLM_MODEL`, `AGENTGUARD_LLM_ENABLED`.
-
-Without a key configured, AgentGuard falls back to rule-based template generation — no LLM required.
-
-### Config File
-
-AgentGuard reads `~/.agentguard/config.yaml`:
-
-```yaml
-llm:
-  provider: anthropic          # anthropic | openai | google | ollama
-  model: claude-sonnet-4-20250514
-```
-
-See the [Configuration Guide](docs/getting-started.md) for all options.
 
 ## CLI Commands
 
 <details>
-<summary><strong>Asset Management</strong></summary>
+<summary><strong>Asset Inventory</strong></summary>
 
 | Command | Description |
 | --- | --- |
-| `suggest --repo <path>` | Actionable recommendations; add `--apply` to auto-create |
 | `inventory` | Scan repos and update the asset catalog |
 | `catalog` | List all cataloged assets (filter with `--type`) |
-| `show <id>` | Show detailed view of an asset or suggestion |
-| `export <repo>` | Export assets to another harness format |
+| `show <id>` | Show detailed view of an asset |
 | `harnesses` | List supported harness formats |
-
-</details>
-
-<details>
-<summary><strong>Evaluation &amp; Quality</strong></summary>
-
-| Command | Description |
-| --- | --- |
 | `evaluate --repo <path>` | Compute quality scores for all assets |
-| `check-regression <session>` | Check a session for quality regressions |
-| `compare <a> <b>` | Compare quality metrics between two assets |
-| `variant <asset-id>` | Create an A/B test variant |
-| `promote <variant-id>` | Promote a winning variant |
-| `rollback-best <asset-id>` | Rollback to historically best-quality version |
 
 </details>
 
@@ -182,74 +111,54 @@ See the [Configuration Guide](docs/getting-started.md) for all options.
 | `trust show <id>` | Show trust level and history |
 | `trust promote <id>` | Promote an asset to a higher trust level |
 | `integrity check` | Verify all tracked asset hashes |
-| `integrity report` | Show tampered/modified assets since last scan |
 | `history <id>` | Show snapshot timeline for an asset |
 | `rollback <id> <snapshot>` | Restore an asset from a previous snapshot |
 
 </details>
 
 <details>
-<summary><strong>Analysis &amp; Patterns</strong></summary>
+<summary><strong>Attestation &amp; Runtime Shield</strong></summary>
 
 | Command | Description |
 | --- | --- |
-| `analyze <repo>` | Detect languages, frameworks, and conventions |
-| `extract-patterns` | Extract reusable patterns from the catalog |
-| `apply-pattern <name>` | Apply a pattern template to a repo |
-| `validate <file>` | Validate an asset file against the schema registry |
-| `schema show <type>` | Print the current schema for an asset type |
-| `schema check` | Compare local schemas against bundled defaults |
-| `schema update` | Update schemas from bundled defaults |
-| `schema reset` | Restore bundled default schemas |
+| `attest sign <path>` | Run BSR and sign the behavioral fingerprint |
+| `attest verify <path>` | Verify an existing attestation |
+| `counterfactual <old> <new>` | Replay a revision against the attested baseline |
+| `diverge check` | Runtime divergence detection against attested fingerprints |
+| `shield run` | BATT PreToolUse hook enforcing trust-tier tool authority |
+| `telemetry hlot` | Emit HLOT OTel attributes for agent-session spans |
 
 </details>
 
 <details>
-<summary><strong>CI, Drift &amp; Telemetry</strong></summary>
+<summary><strong>CI &amp; Drift</strong></summary>
 
 | Command | Description |
 | --- | --- |
-| `ci` | Evaluate quality for CI pipelines (exit 1/2 for fail) |
-| `drift` | Detect stale, outdated, or missing assets |
-| `profile --repo <path>` | Analyze session workflows |
-
-</details>
-
-<details>
-<summary><strong>Instincts</strong></summary>
-
-| Command | Description |
-| --- | --- |
-| `instincts list` | List learned patterns from session history |
-| `instincts extract` | Extract instincts from session transcripts |
-| `instincts prune` | Remove stale or low-confidence instincts |
-| `instincts import` | Import instincts from a JSON file |
-| `instincts export` | Export high-confidence instincts to a file |
+| `ci` | CI gate with exit codes 0/1/2/3 (pass / quality / security / behavioral) |
+| `drift` | Detect stale file references in tracked assets |
 
 </details>
 
 ## CI Integration
 
-Run AgentGuard as a quality gate in any CI system:
+Run AgentGuard as a quality and security gate in any CI system:
 
 ```bash
 agentguard ci --threshold 70 --mode check --security
 ```
 
-**Exit codes:** `0` = pass, `1` = quality failure, `2` = security failure.
+**Exit codes:** `0` = pass, `1` = quality failure, `2` = security failure, `3` = behavioral divergence.
 
-See the [CI Integration Guide](docs/ci-integration.md) for detailed setup instructions with GitLab CI, Jenkins, CircleCI, and other providers.
+See the [CI Integration Guide](docs/ci-integration.md) for detailed setup instructions.
 
 ## How It Works
 
-AgentGuard follows a pipeline architecture:
+AgentGuard implements a three-layer governance loop:
 
-1. **Scan** — Parse `.claude/` directories to discover agents, skills, hooks, commands, rules, and settings
-2. **Catalog** — Index assets in a JSONL catalog with content hashing and metadata
-3. **Profile** — Parse session transcripts to understand how assets are actually used
-4. **Analyze** — Detect repo languages, frameworks, and conventions for context-aware operations
-5. **Extract** — Cluster similar assets and generate reusable pattern templates; distill instincts from session history
-6. **Evaluate** — Score asset quality from telemetry, detect regressions, run A/B tests; surface actionable suggestions
+1. **Config-time attestation** — Static scan (exit 2 on CRITICAL), Behavioral Sandbox Replay in the native harness, signed fingerprint bound to content hash, Counterfactual Replay Gate against recent sessions (exit 3 on divergence)
+2. **Runtime divergence** — HLOT attributes on every OTel span, RFDD compares live behavior against the attested fingerprint on five dimensions, BATT Shield narrows tool grants at invocation time and auto-demotes trust tiers on divergence
+3. **Causal lineage** — Incidents join across agent and application spans by content hash to identify blast radius and rollback candidates
 
 ## Documentation
 
