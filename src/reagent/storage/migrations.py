@@ -104,6 +104,30 @@ def _v4_to_v5(conn: sqlite3.Connection) -> None:
     )
 
 
+def _v5_to_v6(conn: sqlite3.Connection) -> None:
+    """Add divergence_findings table for RFDD runtime divergence events."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS divergence_findings (
+            finding_id           TEXT PRIMARY KEY,
+            asset_content_hash   TEXT NOT NULL,
+            fingerprint_hash     TEXT NOT NULL,
+            dimension            TEXT NOT NULL,
+            kind                 TEXT NOT NULL,
+            observed_json        TEXT NOT NULL,
+            observed_value       REAL,
+            attested_low         REAL,
+            attested_high        REAL,
+            severity             TEXT NOT NULL,
+            mitre_atlas_json     TEXT NOT NULL,
+            detected_at          TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_divergence_by_asset
+            ON divergence_findings(asset_content_hash, detected_at DESC);
+        """
+    )
+
+
 # Ordered list of migrations.  Index = version that migration produces.
 # e.g. _MIGRATIONS[0] migrates from v0 → v1.
 _MIGRATIONS: list[tuple[int, MigrationFn]] = [
@@ -112,6 +136,7 @@ _MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (3, _v2_to_v3),
     (4, _v3_to_v4),
     (5, _v4_to_v5),
+    (6, _v5_to_v6),
 ]
 
 CURRENT_VERSION: int = _MIGRATIONS[-1][0] if _MIGRATIONS else 0

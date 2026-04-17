@@ -1,3 +1,10 @@
+from reagent.attestation.divergence import (
+    DivergenceDetector,
+    DivergenceFinding,
+    DivergenceSeverity,
+    IQRDivergenceDetector,
+)
+from reagent.attestation.divergence_store import DivergenceStore
 from reagent.attestation.fingerprint import BehavioralFingerprint
 from reagent.attestation.models import (
     AttestationRecord,
@@ -16,6 +23,11 @@ __all__ = [
     "AttestationRecord",
     "AttestationStore",
     "BehavioralFingerprint",
+    "DivergenceDetector",
+    "DivergenceFinding",
+    "DivergenceSeverity",
+    "DivergenceStore",
+    "IQRDivergenceDetector",
     "load_or_create_signing_key",
     "public_key_fingerprint",
     "sign_bytes",

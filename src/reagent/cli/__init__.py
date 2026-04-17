@@ -141,6 +141,11 @@ from reagent.cli.commands.attest import attest  # noqa: E402
 
 cli.add_command(attest)
 
+# runtime divergence detection
+from reagent.cli.commands.diverge import diverge  # noqa: E402
+
+cli.add_command(diverge)
+
 
 if __name__ == "__main__":
     sys.exit(main())
