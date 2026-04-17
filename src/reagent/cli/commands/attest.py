@@ -51,12 +51,50 @@ def verify_cmd(asset_path: Path) -> None:
 
 @attest.command("run")
 @click.argument("asset_path", type=click.Path(exists=True, path_type=Path))
-def run_cmd(asset_path: Path) -> None:
-    """Run sandbox replay and emit a signed attestation (wired in Chunk 3)."""
+@click.option(
+    "--harness",
+    default="claude-code",
+    show_default=True,
+    help="Harness identifier recorded on the attestation.",
+)
+@click.option(
+    "--claude-binary",
+    default="claude",
+    show_default=True,
+    help="Path to the claude CLI binary used by the sandbox driver.",
+)
+@click.option(
+    "--timeout",
+    type=int,
+    default=120,
+    show_default=True,
+    help="Per-probe timeout in seconds.",
+)
+def run_cmd(asset_path: Path, harness: str, claude_binary: str, timeout: int) -> None:
+    """Run sandbox replay against ASSET_PATH and emit a signed attestation."""
     from rich.console import Console
 
-    Console().print(
-        f"[yellow]reagent attest run[/yellow] not yet implemented for {asset_path} "
-        "— sandbox engine lands in Chunk 3."
+    from reagent.attestation.store import AttestationStore
+    from reagent.config import ReagentConfig
+    from reagent.sandbox import ClaudeCodeDriver, SandboxEngine
+
+    console = Console()
+    config = ReagentConfig.load()
+
+    driver = ClaudeCodeDriver(claude_binary=claude_binary)
+    engine = SandboxEngine(driver=driver, timeout_seconds=timeout)
+
+    record = engine.attest(
+        asset_path=asset_path,
+        signing_key_path=config.attestation.signing_key_path,
+        harness=harness,
+        store=AttestationStore(),
     )
-    raise SystemExit(2)
+
+    console.print(f"[green]Attested[/green] {asset_path}")
+    console.print(f"  asset_content_hash:  {record.asset_content_hash}")
+    console.print(f"  fingerprint_hash:    {record.fingerprint_hash}")
+    console.print(f"  signer_key_id:       {record.signer_key_id}")
+    console.print(f"  harness:             {record.harness}")
+    console.print(f"  trust_level:         {record.trust_level.name}")
+    raise SystemExit(0)
