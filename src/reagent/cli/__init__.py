@@ -136,6 +136,11 @@ from reagent.cli.commands.ci import ci_cmd, drift_cmd  # noqa: E402
 cli.add_command(ci_cmd)
 cli.add_command(drift_cmd)
 
+# attestation commands
+from reagent.cli.commands.attest import attest  # noqa: E402
+
+cli.add_command(attest)
+
 
 if __name__ == "__main__":
     sys.exit(main())

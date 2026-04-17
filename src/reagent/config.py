@@ -51,6 +51,15 @@ class SecurityConfig(BaseModel):
     block_on_critical: bool = True
 
 
+class AttestationConfig(BaseModel):
+    enabled: bool = True
+    signing_key_path: Path = Field(
+        default_factory=lambda: Path.home() / ".reagent" / "keys" / "attestation.key"
+    )
+    sandbox_timeout_seconds: int = 120
+    corpus_path: Path | None = None
+
+
 class CodeIntelConfig(BaseModel):
     # TODO: Wire to MCP server integration when gitnexus support is implemented.
     enabled: bool = False
@@ -140,6 +149,7 @@ class ReagentConfig(BaseModel):
     telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
     versioning: VersioningConfig = Field(default_factory=VersioningConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
+    attestation: AttestationConfig = Field(default_factory=AttestationConfig)
     code_intel: CodeIntelConfig = Field(default_factory=CodeIntelConfig)
     llm: Any = Field(default=None)
     harness: HarnessConfig = Field(default_factory=HarnessConfig)

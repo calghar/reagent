@@ -82,6 +82,28 @@ def _v3_to_v4(conn: sqlite3.Connection) -> None:
     )
 
 
+def _v4_to_v5(conn: sqlite3.Connection) -> None:
+    """Add attestations table for AgentGuard behavioral attestation records."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS attestations (
+            asset_content_hash   TEXT NOT NULL,
+            fingerprint_hash     TEXT NOT NULL,
+            fingerprint_json     TEXT NOT NULL,
+            signature            TEXT NOT NULL,
+            signer_key_id        TEXT NOT NULL,
+            signed_at            TEXT NOT NULL,
+            harness              TEXT NOT NULL,
+            corpus_hash          TEXT NOT NULL,
+            trust_level          INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (asset_content_hash, fingerprint_hash)
+        );
+        CREATE INDEX IF NOT EXISTS idx_attestations_fingerprint
+            ON attestations(fingerprint_hash);
+        """
+    )
+
+
 # Ordered list of migrations.  Index = version that migration produces.
 # e.g. _MIGRATIONS[0] migrates from v0 → v1.
 _MIGRATIONS: list[tuple[int, MigrationFn]] = [
@@ -89,6 +111,7 @@ _MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (2, _v1_to_v2),
     (3, _v2_to_v3),
     (4, _v3_to_v4),
+    (5, _v4_to_v5),
 ]
 
 CURRENT_VERSION: int = _MIGRATIONS[-1][0] if _MIGRATIONS else 0
