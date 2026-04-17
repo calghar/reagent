@@ -10,6 +10,9 @@
 | [Evaluation](evaluation.md) | Quality measurement and A/B testing |
 | [CI Integration](ci-integration.md) | CI pipelines and drift detection |
 | [Security Scanning](security-scanning.md) | Security features and trust model |
+| [Threat Model](threat-model.md) | STRIDE, attack classes, rule → MITRE ATLAS / OWASP AST10 map |
+| [Behavioral Attestation](attestation.md) | Sandbox replay, fingerprints, signing, attestation store |
+| [BATT Runtime Shield](shield.md) | Trust-tier-gated tool-call enforcement at invocation time |
 | [Comparison](comparison.md) | How Reagent compares to related projects |
 
 ## Also See

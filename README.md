@@ -43,7 +43,12 @@ Reagent manages the full lifecycle of AI agent assets — agents, skills, hooks,
 
 ### Security
 
-- **Static Analysis** — 20+ security rules for prompt injection, exfiltration, and unsafe patterns
+- **Static Analysis** — 20+ security rules for prompt injection, exfiltration, and unsafe patterns, each mapped to MITRE ATLAS and OWASP AST10 taxonomies (see `docs/threat-model.md`)
+- **Behavioral Attestation** — Drive the real Claude Code CLI in a mediated sandbox, capture a five-dimension `BehavioralFingerprint`, and sign it with ed25519 (see `docs/attestation.md`)
+- **Runtime Divergence Detection** — IQR-based `DivergenceDetector` flags new tool calls, new egress hosts, and new hook subprocess trees with MITRE ATLAS tagging
+- **Counterfactual Replay Gate** — `reagent counterfactual` replays proposed revisions through the sandbox and blocks merges when behavior expands beyond the attested baseline
+- **BATT Runtime Shield** — `reagent shield` enforces trust-tier-gated tool authority at invocation time via a Claude Code `PreToolUse` hook (see `docs/shield.md`)
+- **HLOT Telemetry** — `reagent telemetry hlot` emits `agentguard.asset.*` attributes to stamp every agent-session OTel span with content hash, fingerprint hash, and trust tier
 - **AgentShield Integration** — Optional `npx agentshield` scanning for deeper analysis
 - **Trust Management** — 4-level trust model with promotion and integrity verification
 - **Import Gates** — Security scanning on imported assets from URLs, gists, or local paths
@@ -53,7 +58,7 @@ Reagent manages the full lifecycle of AI agent assets — agents, skills, hooks,
 
 - **CI Pipeline** — Run `reagent ci` as a quality gate in any CI system with configurable thresholds
 - **Drift Detection** — Find stale, outdated, or missing assets that have fallen behind repo changes
-- **Exit Codes** — Structured exit codes: 0 = pass, 1 = quality fail, 2 = security fail
+- **Exit Codes** — Structured exit codes: 0 = pass, 1 = quality fail, 2 = security fail, 3 = behavioral divergence at merge time
 
 ### Telemetry & Profiling
 

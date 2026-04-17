@@ -20,21 +20,24 @@ Reagent is an automated asset synthesis and optimization engine for AI agent har
 
 ## Architecture
 
-Python 3.13 CLI (`src/reagent/cli/`) backed by 14 packages:
+Python 3.13 CLI (`src/reagent/cli/`) backed by these packages:
 
 - **core/** — parsers, inventory, catalog (leaf module, no upward imports)
 - **creation/** — asset generation (creator, generators, suggest, exemplars)
 - **evaluation/** — quality scoring with weighted metrics
 - **intelligence/** — repo analysis, code intel, patterns, schema validation
-- **security/** — scanner (20+ rules), trust model, integrity, governance, AgentShield gate
+- **security/** — scanner (20+ rules with MITRE ATLAS + OWASP AST10 metadata), trust model, integrity, governance, AgentShield gate
+- **attestation/** — signed behavioral fingerprint (BehavioralFingerprint, ed25519 signing, AttestationStore), RFDD divergence detector, counterfactual replay gate
+- **sandbox/** — BSR engine with HarnessDriver protocol, MockDriver, real-Claude-Code subprocess ClaudeCodeDriver, prompt corpus
+- **shield/** — BATT runtime shield: TrustPolicy per TrustLevel, ShieldEnforcer with pluggable PolicySource, Claude Code PreToolUse hook script
 - **llm/** — provider abstraction (Anthropic/OpenAI/Google/Ollama), router with circuit breaker, costs, cache, instincts, quality pipeline, Jinja2 prompts
 - **loops/** — autonomous generate→evaluate→improve cycles with guardrails and approval queue
-- **ci/** — CI runner, drift detection, reporting
+- **ci/** — CI runner (exit codes 0/1/2/3 for pass/quality/security/behavioral), drift detection, reporting
 - **api/** — Starlette ASGI dashboard backend (REST + SSE endpoints)
-- **storage/** — SQLite with WAL mode, forward-only migrations
+- **storage/** — SQLite with WAL mode, forward-only migrations (through v6: attestations, divergence_findings)
 - **harness/** — cross-harness adapters (Cursor, Codex, OpenCode, AGENTS.md)
-- **telemetry/** — workflow profiling, hook installation, event parsing
-- **data/** — bundled schemas, prompt templates (.j2), hook scripts
+- **telemetry/** — workflow profiling, hook installation, event parsing, HLOT attribute emission (`agentguard.asset.*`)
+- **data/** — bundled schemas, prompt templates (.j2), hook scripts, sandbox probe corpus, red-team seed corpus
 - **config.py** — Pydantic config hierarchy (CLI → env → config.yaml → defaults)
 - **_tuning.py** — cached `get_tuning()` accessor for `TuningConfig` scoring/threshold constants
 
