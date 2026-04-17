@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from reagent.security.trust import (
+from agentguard.security.trust import (
     AssetState,
     TrustEvent,
     TrustLevel,

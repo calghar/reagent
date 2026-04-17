@@ -10,7 +10,7 @@
 | [Evaluation](evaluation.md) | Quality measurement and A/B testing |
 | [CI Integration](ci-integration.md) | CI pipelines and drift detection |
 | [Security Scanning](security-scanning.md) | Security features and trust model |
-| [Comparison](comparison.md) | How Reagent compares to related projects |
+| [Comparison](comparison.md) | How AgentGuard compares to related projects |
 
 ## Also See
 

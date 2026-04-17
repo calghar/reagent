@@ -1,6 +1,6 @@
 # Evaluation
 
-Reagent measures the quality of Claude Code assets using actual session telemetry, detects regressions, and supports A/B testing for iterative improvement.
+AgentGuard measures the quality of Claude Code assets using actual session telemetry, detects regressions, and supports A/B testing for iterative improvement.
 
 ## Quality Metrics
 
@@ -29,17 +29,17 @@ These combine into an overall quality score (0–100) with labels:
 ## Running Evaluations
 
 ```bash
-reagent evaluate --repo ./my-project
+agentguard evaluate --repo ./my-project
 ```
 
 This produces a quality report table showing each asset's score, label, and key metrics. The report also summarizes overall counts of healthy, underperforming, and stale assets.
 
 ## Regression Detection
 
-Reagent detects quality regressions by comparing session metrics against a rolling baseline:
+AgentGuard detects quality regressions by comparing session metrics against a rolling baseline:
 
 ```bash
-reagent check-regression <session-id> --repo ./my-project
+agentguard check-regression <session-id> --repo ./my-project
 ```
 
 A regression is flagged when a metric deviates more than 2 standard deviations from the baseline mean. The system reports:
@@ -48,7 +48,7 @@ A regression is flagged when a metric deviates more than 2 standard deviations f
 - Current value vs. baseline mean and standard deviation
 - Related asset changes that may have caused the regression
 
-Regressions are logged to `~/.reagent/telemetry/regressions.jsonl`.
+Regressions are logged to `~/.agentguard/telemetry/regressions.jsonl`.
 
 ## A/B Testing
 
@@ -57,7 +57,7 @@ Test asset changes with controlled A/B experiments:
 ### 1. Create a Variant
 
 ```bash
-reagent variant my-project:agent:reviewer --name v2 --change "Reduced verbosity"
+agentguard variant my-project:agent:reviewer --name v2 --change "Reduced verbosity"
 ```
 
 This creates a copy of the asset as a variant. Edit the variant file to make your changes.
@@ -69,7 +69,7 @@ Sessions automatically alternate between the original and variant. The telemetry
 ### 3. Compare Results
 
 ```bash
-reagent compare my-project:agent:reviewer my-project:agent:reviewer-v2
+agentguard compare my-project:agent:reviewer my-project:agent:reviewer-v2
 ```
 
 This shows quality metrics side by side with a confidence score.
@@ -77,20 +77,20 @@ This shows quality metrics side by side with a confidence score.
 ### 4. Promote or Discard
 
 ```bash
-reagent promote my-project:agent:reviewer-v2   # Replace original with variant
+agentguard promote my-project:agent:reviewer-v2   # Replace original with variant
 ```
 
 Or discard the variant if the original performs better.
 
 ## CI Integration
 
-Run Reagent in CI pipelines with `reagent ci` for automated quality gating:
+Run AgentGuard in CI pipelines with `agentguard ci` for automated quality gating:
 
 ```bash
-reagent ci                    # Check quality with default threshold (60)
-reagent ci --threshold 70     # Require score >= 70
-reagent ci --mode suggest     # Output suggestions without failing
-reagent ci --json             # JSON output for downstream processing
+agentguard ci                    # Check quality with default threshold (60)
+agentguard ci --threshold 70     # Require score >= 70
+agentguard ci --mode suggest     # Output suggestions without failing
+agentguard ci --json             # JSON output for downstream processing
 ```
 
 ### Exit Codes
@@ -106,7 +106,7 @@ reagent ci --json             # JSON output for downstream processing
 Detect stale or missing assets before evaluation:
 
 ```bash
-reagent drift --repo ./my-project
+agentguard drift --repo ./my-project
 ```
 
 Reports assets that are outdated, missing recommended files, or haven't been
@@ -117,7 +117,7 @@ updated since the repo changed significantly.
 Rollback to the historically best-performing version of an asset:
 
 ```bash
-reagent rollback-best my-project:agent:reviewer
+agentguard rollback-best my-project:agent:reviewer
 ```
 
 This shows the version history with quality scores and offers to restore the best-performing snapshot.

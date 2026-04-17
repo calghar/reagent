@@ -3,14 +3,14 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from reagent.attestation import (
+from agentguard.attestation import (
     AttestationStore,
     BehavioralFingerprint,
     sign_fingerprint,
 )
-from reagent.security.trust import TrustLevel
-from reagent.storage import ReagentDB
-from reagent.telemetry.hlot import (
+from agentguard.security.trust import TrustLevel
+from agentguard.storage import AgentGuardDB
+from agentguard.telemetry.hlot import (
     HLOT_CONTENT_HASH_KEY,
     HLOT_FINGERPRINT_HASH_KEY,
     HLOT_TRUST_TIER_KEY,
@@ -32,9 +32,9 @@ def test_hlot_attributes_populated(
 ) -> None:
     import hashlib
 
-    db_path = tmp_path / "reagent.db"
-    monkeypatch.setenv("REAGENT_DB_PATH", str(db_path))
-    store = AttestationStore(db=ReagentDB(db_path))
+    db_path = tmp_path / "agentguard.db"
+    monkeypatch.setenv("AGENTGUARD_DB_PATH", str(db_path))
+    store = AttestationStore(db=AgentGuardDB(db_path))
 
     fp = BehavioralFingerprint(
         tool_calls=["Read:path"],
@@ -62,9 +62,9 @@ def test_hlot_attributes_populated(
 def test_unattested_asset_raises_and_fallback_works(
     asset_file: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    db_path = tmp_path / "reagent.db"
-    monkeypatch.setenv("REAGENT_DB_PATH", str(db_path))
-    store = AttestationStore(db=ReagentDB(db_path))
+    db_path = tmp_path / "agentguard.db"
+    monkeypatch.setenv("AGENTGUARD_DB_PATH", str(db_path))
+    store = AttestationStore(db=AgentGuardDB(db_path))
 
     with pytest.raises(HLOTNotAttestedError):
         compute_hlot_attributes(asset_file, store=store)

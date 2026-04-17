@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
-from reagent.evaluation.suggest import generate_suggestions
-from reagent.telemetry.profiler import CorrectionHotspot, Workflow, WorkflowProfile
+from agentguard.evaluation.suggest import generate_suggestions
+from agentguard.telemetry.profiler import CorrectionHotspot, Workflow, WorkflowProfile
 
 
 class TestGenerateSuggestions:

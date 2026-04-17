@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from reagent.evaluation.evaluator import (
+from agentguard.evaluation.evaluator import (
     BaselineMetrics,
     RegressionAlert,
     RegressionReport,
@@ -10,7 +10,7 @@ from reagent.evaluation.evaluator import (
     build_baseline,
     log_regression,
 )
-from reagent.telemetry.events import ParsedSession, SessionMetrics
+from agentguard.telemetry.events import ParsedSession, SessionMetrics
 
 TELEMETRY_DIR = Path(__file__).parent / "fixtures" / "telemetry"
 

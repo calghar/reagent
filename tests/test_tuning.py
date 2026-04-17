@@ -6,12 +6,12 @@ from pathlib import Path
 
 import yaml
 
-from reagent._tuning import get_tuning
-from reagent.config import (
+from agentguard._tuning import get_tuning
+from agentguard.config import (
+    AgentGuardConfig,
     CacheTuning,
     EvaluationTuning,
     InstinctTuning,
-    ReagentConfig,
     RouterTuning,
     TuningConfig,
 )
@@ -61,11 +61,11 @@ class TestTuningModels:
         assert tc.instinct.recency_half_life_days == 180.0
 
 
-class TestReagentConfigTuning:
-    """TuningConfig integrates with ReagentConfig."""
+class TestAgentGuardConfigTuning:
+    """TuningConfig integrates with AgentGuardConfig."""
 
-    def test_default_reagent_config_has_tuning(self) -> None:
-        cfg = ReagentConfig()
+    def test_default_agentguard_config_has_tuning(self) -> None:
+        cfg = AgentGuardConfig()
         assert isinstance(cfg.tuning, TuningConfig)
         assert cfg.tuning.instinct.category_match_boost == 1.5
 
@@ -78,7 +78,7 @@ class TestReagentConfigTuning:
             }
         }
         config_path.write_text(yaml.dump(data))
-        cfg = ReagentConfig.load(path=config_path)
+        cfg = AgentGuardConfig.load(path=config_path)
         assert cfg.tuning.instinct.category_match_boost == 3.0
         assert cfg.tuning.instinct.default_top_k == 10
         # Untouched fields keep defaults
@@ -89,11 +89,11 @@ class TestReagentConfigTuning:
     def test_load_without_tuning_section(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump({"log": {"level": "DEBUG"}}))
-        cfg = ReagentConfig.load(path=config_path)
+        cfg = AgentGuardConfig.load(path=config_path)
         assert cfg.tuning == TuningConfig()
 
     def test_load_missing_file_gives_defaults(self, tmp_path: Path) -> None:
-        cfg = ReagentConfig.load(path=tmp_path / "nonexistent.yaml")
+        cfg = AgentGuardConfig.load(path=tmp_path / "nonexistent.yaml")
         assert cfg.tuning.instinct.category_match_boost == 1.5
 
 

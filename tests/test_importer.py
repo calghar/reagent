@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from reagent.security.importer import (
+from agentguard.security.importer import (
     ImportResult,
     cleanup_staging,
     fetch_to_staging,
@@ -10,8 +10,8 @@ from reagent.security.importer import (
     resolve_source,
     run_import,
 )
-from reagent.security.scanner import ScanReport
-from reagent.security.trust import TrustLevel, TrustStore
+from agentguard.security.scanner import ScanReport
+from agentguard.security.trust import TrustLevel, TrustStore
 
 
 class TestResolveSource:

@@ -2,17 +2,17 @@ from pathlib import Path
 
 import pytest
 
-from reagent.attestation import (
+from agentguard.attestation import (
     AttestationStore,
     DivergenceSeverity,
     IQRDivergenceDetector,
 )
-from reagent.sandbox.capture import events_to_fingerprint
-from reagent.sandbox.corpus import Probe, PromptCorpus
-from reagent.sandbox.drivers import DriverEvent, DriverEventKind, MockDriver
-from reagent.sandbox.engine import SandboxEngine
-from reagent.security.trust import TrustLevel
-from reagent.shield.enforcer import (
+from agentguard.sandbox.capture import events_to_fingerprint
+from agentguard.sandbox.corpus import Probe, PromptCorpus
+from agentguard.sandbox.drivers import DriverEvent, DriverEventKind, MockDriver
+from agentguard.sandbox.engine import SandboxEngine
+from agentguard.security.trust import TrustLevel
+from agentguard.shield.enforcer import (
     InMemoryPolicySource,
     ShieldEnforcer,
     ShieldOutcome,
@@ -35,12 +35,12 @@ def asset_file(tmp_path: Path) -> Path:
 def test_attest_diverge_detect_and_shield(
     asset_file: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    db_path = tmp_path / "reagent.db"
-    monkeypatch.setenv("REAGENT_DB_PATH", str(db_path))
+    db_path = tmp_path / "agentguard.db"
+    monkeypatch.setenv("AGENTGUARD_DB_PATH", str(db_path))
 
-    from reagent.storage import ReagentDB
+    from agentguard.storage import AgentGuardDB
 
-    store = AttestationStore(db=ReagentDB(db_path))
+    store = AttestationStore(db=AgentGuardDB(db_path))
     key_path = tmp_path / "key.pem"
 
     # 1. Attest: a benign baseline behavior.

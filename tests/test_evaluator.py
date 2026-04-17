@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from reagent.core.catalog import Catalog, CatalogEntry
-from reagent.core.parsers import AssetType
-from reagent.evaluation.evaluator import (
+from agentguard.core.catalog import Catalog, CatalogEntry
+from agentguard.core.parsers import AssetType
+from agentguard.evaluation.evaluator import (
     ABTestStore,
     AssetMetrics,
     QualityLabel,
@@ -22,7 +22,7 @@ from reagent.evaluation.evaluator import (
     persist_report,
     promote_variant,
 )
-from reagent.telemetry.events import ParsedSession, SessionMetrics, ToolCall
+from agentguard.telemetry.events import ParsedSession, SessionMetrics, ToolCall
 
 
 class TestNormalization:
@@ -312,10 +312,10 @@ class TestPersistReport:
     def test_persist_writes_to_database(self, tmp_path: Path) -> None:
         import sqlite3
 
-        from reagent.storage import ReagentDB
+        from agentguard.storage import AgentGuardDB
 
-        db_path = tmp_path / "reagent.db"
-        with ReagentDB(db_path) as db:
+        db_path = tmp_path / "agentguard.db"
+        with AgentGuardDB(db_path) as db:
             db.connect()
 
         repo = tmp_path / "test-repo"
@@ -364,10 +364,10 @@ class TestPersistReport:
     def test_persist_creates_unique_rows(self, tmp_path: Path) -> None:
         import sqlite3
 
-        from reagent.storage import ReagentDB
+        from agentguard.storage import AgentGuardDB
 
-        db_path = tmp_path / "reagent.db"
-        with ReagentDB(db_path) as db:
+        db_path = tmp_path / "agentguard.db"
+        with AgentGuardDB(db_path) as db:
             db.connect()
 
         repo = tmp_path / "test-repo"
@@ -398,10 +398,10 @@ class TestPersistReport:
     def test_persist_empty_report(self, tmp_path: Path) -> None:
         import sqlite3
 
-        from reagent.storage import ReagentDB
+        from agentguard.storage import AgentGuardDB
 
-        db_path = tmp_path / "reagent.db"
-        with ReagentDB(db_path) as db:
+        db_path = tmp_path / "agentguard.db"
+        with AgentGuardDB(db_path) as db:
             db.connect()
 
         repo = tmp_path / "empty-repo"

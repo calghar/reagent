@@ -1,5 +1,5 @@
 <!--markdownlint-disable MD033 -->
-<h1 align="center">Reagent</h1>
+<h1 align="center">AgentGuard</h1>
 
 <p align="center">
   <strong>Automated asset synthesis and optimization engine for AI agent harnesses.</strong>
@@ -13,7 +13,7 @@
 
 ---
 
-Reagent manages the full lifecycle of AI agent assets — agents, skills, hooks, commands, and rules. It inventories your `.claude/` directories, profiles actual usage from session transcripts, evaluates quality over time, detects security issues, and exports to multiple harness formats.
+AgentGuard manages the full lifecycle of AI agent assets — agents, skills, hooks, commands, and rules. It inventories your `.claude/` directories, profiles actual usage from session transcripts, evaluates quality over time, detects security issues, and exports to multiple harness formats.
 
 ## Features
 
@@ -46,9 +46,9 @@ Reagent manages the full lifecycle of AI agent assets — agents, skills, hooks,
 - **Static Analysis** — 20+ security rules for prompt injection, exfiltration, and unsafe patterns, each mapped to MITRE ATLAS and OWASP AST10 taxonomies (see `docs/threat-model.md`)
 - **Behavioral Attestation** — Drive the real Claude Code CLI in a mediated sandbox, capture a five-dimension `BehavioralFingerprint`, and sign it with ed25519 (see `docs/attestation.md`)
 - **Runtime Divergence Detection** — IQR-based `DivergenceDetector` flags new tool calls, new egress hosts, and new hook subprocess trees with MITRE ATLAS tagging
-- **Counterfactual Replay Gate** — `reagent counterfactual` replays proposed revisions through the sandbox and blocks merges when behavior expands beyond the attested baseline
-- **BATT Runtime Shield** — `reagent shield` enforces trust-tier-gated tool authority at invocation time via a Claude Code `PreToolUse` hook (see `docs/shield.md`)
-- **HLOT Telemetry** — `reagent telemetry hlot` emits `agentguard.asset.*` attributes to stamp every agent-session OTel span with content hash, fingerprint hash, and trust tier
+- **Counterfactual Replay Gate** — `agentguard counterfactual` replays proposed revisions through the sandbox and blocks merges when behavior expands beyond the attested baseline
+- **BATT Runtime Shield** — `agentguard shield` enforces trust-tier-gated tool authority at invocation time via a Claude Code `PreToolUse` hook (see `docs/shield.md`)
+- **HLOT Telemetry** — `agentguard telemetry hlot` emits `agentguard.asset.*` attributes to stamp every agent-session OTel span with content hash, fingerprint hash, and trust tier
 - **AgentShield Integration** — Optional `npx agentshield` scanning for deeper analysis
 - **Trust Management** — 4-level trust model with promotion and integrity verification
 - **Import Gates** — Security scanning on imported assets from URLs, gists, or local paths
@@ -56,7 +56,7 @@ Reagent manages the full lifecycle of AI agent assets — agents, skills, hooks,
 
 ### CI/CD Integration
 
-- **CI Pipeline** — Run `reagent ci` as a quality gate in any CI system with configurable thresholds
+- **CI Pipeline** — Run `agentguard ci` as a quality gate in any CI system with configurable thresholds
 - **Drift Detection** — Find stale, outdated, or missing assets that have fallen behind repo changes
 - **Exit Codes** — Structured exit codes: 0 = pass, 1 = quality fail, 2 = security fail, 3 = behavioral divergence at merge time
 
@@ -72,8 +72,8 @@ Reagent manages the full lifecycle of AI agent assets — agents, skills, hooks,
 ### From Source (recommended — package not yet on PyPI)
 
 ```bash
-git clone https://github.com/calghar/reagent.git
-cd reagent
+git clone https://github.com/calghar/agentguard.git
+cd agentguard
 
 # Core CLI only
 uv sync
@@ -85,32 +85,32 @@ uv sync --extra dev
 Then run:
 
 ```bash
-uv run reagent --help
+uv run agentguard --help
 ```
 
 ### From PyPI (coming soon)
 
 ```bash
-pip install reagent
+pip install agentguard
 ```
 
 ## Quick Start
 
 ```bash
 # Scan a repo and build the asset catalog
-reagent inventory --repo .
+agentguard inventory --repo .
 
 # Evaluate asset quality
-reagent evaluate --repo .
+agentguard evaluate --repo .
 
 # Get improvement suggestions
-reagent suggest --repo .
+agentguard suggest --repo .
 
 # Run a security audit
-reagent audit --repo .
+agentguard audit --repo .
 
 # Check for stale or missing assets
-reagent drift --repo .
+agentguard drift --repo .
 ```
 
 ## Configuration
@@ -125,13 +125,13 @@ export OPENAI_API_KEY=s...    # OpenAI
 export GOOGLE_API_KEY=...     # Gemini
 ```
 
-Additional environment variables: `REAGENT_LLM_PROVIDER`, `REAGENT_LLM_MODEL`, `REAGENT_LLM_ENABLED`.
+Additional environment variables: `AGENTGUARD_LLM_PROVIDER`, `AGENTGUARD_LLM_MODEL`, `AGENTGUARD_LLM_ENABLED`.
 
-Without a key configured, Reagent falls back to rule-based template generation — no LLM required.
+Without a key configured, AgentGuard falls back to rule-based template generation — no LLM required.
 
 ### Config File
 
-Reagent reads `~/.reagent/config.yaml`:
+AgentGuard reads `~/.agentguard/config.yaml`:
 
 ```yaml
 llm:
@@ -230,10 +230,10 @@ See the [Configuration Guide](docs/getting-started.md) for all options.
 
 ## CI Integration
 
-Run Reagent as a quality gate in any CI system:
+Run AgentGuard as a quality gate in any CI system:
 
 ```bash
-reagent ci --threshold 70 --mode check --security
+agentguard ci --threshold 70 --mode check --security
 ```
 
 **Exit codes:** `0` = pass, `1` = quality failure, `2` = security failure.
@@ -242,7 +242,7 @@ See the [CI Integration Guide](docs/ci-integration.md) for detailed setup instru
 
 ## How It Works
 
-Reagent follows a pipeline architecture:
+AgentGuard follows a pipeline architecture:
 
 1. **Scan** — Parse `.claude/` directories to discover agents, skills, hooks, commands, rules, and settings
 2. **Catalog** — Index assets in a JSONL catalog with content hashing and metadata
@@ -262,14 +262,14 @@ Full documentation is available in the **[docs/](docs/)** directory.
 | [Configuration](docs/configuration.md) | Full configuration reference and environment variables |
 | [Security Scanning](docs/security-scanning.md) | Security features, trust model, and scanning |
 | [Evaluation](docs/evaluation.md) | Quality measurement and A/B testing |
-| [CI Integration](docs/ci-integration.md) | Running Reagent in CI pipelines |
-| [Comparison](docs/comparison.md) | How Reagent compares to related projects |
+| [CI Integration](docs/ci-integration.md) | Running AgentGuard in CI pipelines |
+| [Comparison](docs/comparison.md) | How AgentGuard compares to related projects |
 
 ## Development
 
 ```bash
-git clone https://github.com/calghar/reagent.git
-cd reagent
+git clone https://github.com/calghar/agentguard.git
+cd agentguard
 uv sync --extra dev
 ```
 

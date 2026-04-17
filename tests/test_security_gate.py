@@ -6,16 +6,16 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from reagent.core.parsers import AssetType
-from reagent.llm.parser import GeneratedAsset
-from reagent.security.gate import (
+from agentguard.core.parsers import AssetType
+from agentguard.llm.parser import GeneratedAsset
+from agentguard.security.gate import (
     SecurityGate,
     SecurityIssue,
     SecurityResult,
     _builtin_scan,
     _score_to_grade,
 )
-from reagent.security.scanner import (
+from agentguard.security.scanner import (
     ScanReport,
     Severity,
     apply_auto_fixes,
@@ -133,7 +133,7 @@ class TestSecurityGate:
 
         # Patch agentshield to return None (unavailable)
         with patch(
-            "reagent.security.agentshield.run_agentshield_scan",
+            "agentguard.security.agentshield.run_agentshield_scan",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -148,7 +148,7 @@ class TestSecurityGate:
         mock_result = SecurityResult(grade="A", score=98.0, scanner="agentshield")
 
         with patch(
-            "reagent.security.agentshield.run_agentshield_scan",
+            "agentguard.security.agentshield.run_agentshield_scan",
             new_callable=AsyncMock,
             return_value=mock_result,
         ):
@@ -162,7 +162,7 @@ class TestSecurityGate:
         gate = SecurityGate()
         asset = _make_asset()
         await gate.check(asset, tmp_path)
-        scan_dir = tmp_path / ".reagent_tmp_scan"
+        scan_dir = tmp_path / ".agentguard_tmp_scan"
         # Directory must be fully removed after scan (not merely empty)
         assert not scan_dir.exists(), "Temp dir should be removed after scan"
 
@@ -176,7 +176,7 @@ class TestAgentShieldRunner:
         ],
     )
     def test_is_available(self, which_return: str | None, expected: bool) -> None:
-        from reagent.security.agentshield import is_available
+        from agentguard.security.agentshield import is_available
 
         with patch("shutil.which", return_value=which_return):
             assert is_available() is expected
@@ -185,14 +185,14 @@ class TestAgentShieldRunner:
     async def test_run_scan_returns_none_when_not_available(
         self, tmp_path: Path
     ) -> None:
-        from reagent.security.agentshield import run_agentshield_scan
+        from agentguard.security.agentshield import run_agentshield_scan
 
         with patch("shutil.which", return_value=None):
             result = await run_agentshield_scan(tmp_path / "fake.md")
         assert result is None
 
     def test_parse_valid_agentshield_output(self) -> None:
-        from reagent.security.agentshield import _parse_agentshield_output
+        from agentguard.security.agentshield import _parse_agentshield_output
 
         payload = json.dumps(
             {
@@ -225,7 +225,7 @@ class TestAgentShieldRunner:
         ],
     )
     def test_parse_bad_input_returns_none(self, payload: str) -> None:
-        from reagent.security.agentshield import _parse_agentshield_output
+        from agentguard.security.agentshield import _parse_agentshield_output
 
         result = _parse_agentshield_output(payload)
         assert result is None
@@ -331,7 +331,7 @@ class TestScoreReport:
         assert grade == "A"
 
     def test_report_with_critical_finding(self, tmp_path: Path) -> None:
-        from reagent.security.scanner import SecurityFinding
+        from agentguard.security.scanner import SecurityFinding
 
         report = ScanReport(files_scanned=1)
         finding = SecurityFinding(
@@ -361,7 +361,7 @@ class TestScoreReport:
         assert _score_to_grade(0.0) == "F"
 
     def test_score_clamped_at_zero(self, tmp_path: Path) -> None:
-        from reagent.security.scanner import SecurityFinding
+        from agentguard.security.scanner import SecurityFinding
 
         report = ScanReport(files_scanned=1)
         # Add many critical findings to push risk_score way above 100

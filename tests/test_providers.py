@@ -5,7 +5,7 @@ import httpx
 import pytest
 from pytest import approx
 
-from reagent.llm.config import (
+from agentguard.llm.config import (
     TIER_MODELS,
     CostTier,
     GenerationConfig,
@@ -13,7 +13,7 @@ from reagent.llm.config import (
     ProviderFallback,
     RoutingStrategy,
 )
-from reagent.llm.providers import (
+from agentguard.llm.providers import (
     AnthropicProvider,
     GoogleProvider,
     HealthStatus,
@@ -27,7 +27,7 @@ from reagent.llm.providers import (
     _raise_for_status,
     create_provider,
 )
-from reagent.llm.router import NoProviderAvailableError, ProviderRouter
+from agentguard.llm.router import NoProviderAvailableError, ProviderRouter
 
 
 class TestLLMConfig:
@@ -39,9 +39,9 @@ class TestLLMConfig:
         assert cfg.features.enabled is True
 
     def test_env_overrides(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("REAGENT_LLM_PROVIDER", "openai")
-        monkeypatch.setenv("REAGENT_LLM_MODEL", "gpt-4o")
-        monkeypatch.setenv("REAGENT_LLM_ENABLED", "false")
+        monkeypatch.setenv("AGENTGUARD_LLM_PROVIDER", "openai")
+        monkeypatch.setenv("AGENTGUARD_LLM_MODEL", "gpt-4o")
+        monkeypatch.setenv("AGENTGUARD_LLM_ENABLED", "false")
         cfg = LLMConfig()
         cfg.apply_env_overrides()
         assert cfg.provider == "openai"
@@ -49,7 +49,7 @@ class TestLLMConfig:
         assert cfg.features.enabled is False
 
     def test_env_override_enabled_true(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("REAGENT_LLM_ENABLED", "1")
+        monkeypatch.setenv("AGENTGUARD_LLM_ENABLED", "1")
         cfg = LLMConfig()
         cfg.features.enabled = False
         cfg.apply_env_overrides()
@@ -325,9 +325,7 @@ class TestAnthropicProvider:
         p = AnthropicProvider()
         if has_key:
             p._client = AsyncMock()
-            p._client.post = AsyncMock(
-                return_value=httpx.Response(200, json={})
-            )
+            p._client.post = AsyncMock(return_value=httpx.Response(200, json={}))
         status = await p.health_check()
         assert status.healthy is expect_healthy
         if expect_error_substr:
@@ -635,21 +633,19 @@ class TestErrors:
             assert getattr(err, attr) == value
 
 
-class TestReagentConfigIntegration:
+class TestAgentGuardConfigIntegration:
     def test_default_llm_config(self) -> None:
-        from reagent.config import ReagentConfig
+        from agentguard.config import AgentGuardConfig
 
-        cfg = ReagentConfig()
+        cfg = AgentGuardConfig()
         assert cfg.llm.provider == "anthropic"
         assert cfg.llm.features.enabled is True
 
     def test_load_with_llm_section(self, tmp_path: pytest.TempPathFactory) -> None:
-        from reagent.config import ReagentConfig
+        from agentguard.config import AgentGuardConfig
 
         config_path = tmp_path / "config.yaml"  # type: ignore[operator]
-        config_path.write_text(
-            "llm:\n  provider: openai\n  model: gpt-4o\n"
-        )
-        cfg = ReagentConfig.load(config_path)
+        config_path.write_text("llm:\n  provider: openai\n  model: gpt-4o\n")
+        cfg = AgentGuardConfig.load(config_path)
         assert cfg.llm.provider == "openai"
         assert cfg.llm.model == "gpt-4o"

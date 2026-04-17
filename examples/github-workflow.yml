@@ -1,4 +1,4 @@
-name: Reagent Asset Check
+name: AgentGuard Asset Check
 on:
   push:
     paths:
@@ -11,11 +11,11 @@ on:
       - 'AGENTS.md'
 
 jobs:
-  reagent:
+  agentguard:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Reagent asset check
+      - name: AgentGuard asset check
         uses: ./  # replace with owner/repo@v1 once published
         with:
           mode: suggest

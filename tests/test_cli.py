@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from reagent.cli import cli
+from agentguard.cli import cli
 
 
 class TestCLI:
@@ -12,7 +12,7 @@ class TestCLI:
         result = runner.invoke(cli, ["--help"])
 
         assert result.exit_code == 0
-        assert "Reagent" in result.output
+        assert "AgentGuard" in result.output
 
     def test_inventory_help(self) -> None:
         runner = CliRunner()
@@ -49,10 +49,10 @@ class TestCLI:
         runner = CliRunner()
         catalog_path = tmp_path / "catalog.jsonl"
 
-        with patch("reagent.cli.commands.assets._load_config") as mock_config:
-            from reagent.config import CatalogConfig, ReagentConfig
+        with patch("agentguard.cli.commands.assets._load_config") as mock_config:
+            from agentguard.config import AgentGuardConfig, CatalogConfig
 
-            mock_config.return_value = ReagentConfig(
+            mock_config.return_value = AgentGuardConfig(
                 catalog=CatalogConfig(path=catalog_path)
             )
             result = runner.invoke(cli, ["inventory", "--repo", str(sample_claude_dir)])
@@ -66,10 +66,10 @@ class TestCLI:
         catalog_path = tmp_path / "catalog.jsonl"
         catalog_path.write_text("")
 
-        with patch("reagent.cli.commands.assets._load_config") as mock_config:
-            from reagent.config import CatalogConfig, ReagentConfig
+        with patch("agentguard.cli.commands.assets._load_config") as mock_config:
+            from agentguard.config import AgentGuardConfig, CatalogConfig
 
-            mock_config.return_value = ReagentConfig(
+            mock_config.return_value = AgentGuardConfig(
                 catalog=CatalogConfig(path=catalog_path)
             )
             result = runner.invoke(cli, ["catalog"])
@@ -82,10 +82,10 @@ class TestCLI:
         catalog_path = tmp_path / "catalog.jsonl"
         catalog_path.write_text("")
 
-        with patch("reagent.cli.commands.assets._load_config") as mock_config:
-            from reagent.config import CatalogConfig, ReagentConfig
+        with patch("agentguard.cli.commands.assets._load_config") as mock_config:
+            from agentguard.config import AgentGuardConfig, CatalogConfig
 
-            mock_config.return_value = ReagentConfig(
+            mock_config.return_value = AgentGuardConfig(
                 catalog=CatalogConfig(path=catalog_path)
             )
             result = runner.invoke(cli, ["show", "nonexistent:agent:nope"])
@@ -99,10 +99,10 @@ class TestCLI:
         runner = CliRunner()
         catalog_path = tmp_path / "catalog.jsonl"
 
-        with patch("reagent.cli.commands.assets._load_config") as mock_config:
-            from reagent.config import CatalogConfig, ReagentConfig
+        with patch("agentguard.cli.commands.assets._load_config") as mock_config:
+            from agentguard.config import AgentGuardConfig, CatalogConfig
 
-            mock_config.return_value = ReagentConfig(
+            mock_config.return_value = AgentGuardConfig(
                 catalog=CatalogConfig(path=catalog_path)
             )
 
@@ -119,10 +119,10 @@ class TestCLI:
         runner = CliRunner()
         catalog_path = tmp_path / "catalog.jsonl"
 
-        with patch("reagent.cli.commands.assets._load_config") as mock_config:
-            from reagent.config import CatalogConfig, ReagentConfig
+        with patch("agentguard.cli.commands.assets._load_config") as mock_config:
+            from agentguard.config import AgentGuardConfig, CatalogConfig
 
-            mock_config.return_value = ReagentConfig(
+            mock_config.return_value = AgentGuardConfig(
                 catalog=CatalogConfig(path=catalog_path)
             )
 

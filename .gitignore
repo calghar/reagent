@@ -89,3 +89,4 @@ site/
 # Generated agent assets (never track in repo root)
 /agents/
 scripts/
+.c*

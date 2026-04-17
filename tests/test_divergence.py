@@ -1,4 +1,4 @@
-from reagent.attestation import BehavioralFingerprint, IQRDivergenceDetector
+from agentguard.attestation import BehavioralFingerprint, IQRDivergenceDetector
 
 
 def _attested() -> BehavioralFingerprint:

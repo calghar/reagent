@@ -3,12 +3,16 @@ from pathlib import Path
 
 import pytest
 
-from reagent.core.parsers import AssetType
-from reagent.harness import HarnessFile, HarnessFormat, adapt, detect_harness
-from reagent.harness.adapters import adapt_to_codex, adapt_to_cursor, adapt_to_opencode
-from reagent.harness.agents_md import generate_agents_md
-from reagent.intelligence.analyzer import RepoProfile
-from reagent.llm.parser import GeneratedAsset
+from agentguard.core.parsers import AssetType
+from agentguard.harness import HarnessFile, HarnessFormat, adapt, detect_harness
+from agentguard.harness.adapters import (
+    adapt_to_codex,
+    adapt_to_cursor,
+    adapt_to_opencode,
+)
+from agentguard.harness.agents_md import generate_agents_md
+from agentguard.intelligence.analyzer import RepoProfile
+from agentguard.llm.parser import GeneratedAsset
 
 
 def _make_agent(name: str = "test-agent") -> GeneratedAsset:

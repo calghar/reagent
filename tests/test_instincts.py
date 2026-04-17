@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from reagent.core.parsers import AssetType
-from reagent.evaluation.evaluator import AssetMetrics, QualityLabel, QualityReport
-from reagent.llm.instincts import (
+from agentguard.core.parsers import AssetType
+from agentguard.evaluation.evaluator import AssetMetrics, QualityLabel, QualityReport
+from agentguard.llm.instincts import (
     Instinct,
     InstinctStore,
     TelemetryContext,
@@ -22,13 +22,13 @@ from reagent.llm.instincts import (
     prune_stale,
     relevance_score,
 )
-from reagent.telemetry.events import (
+from agentguard.telemetry.events import (
     CorrectionEvent,
     ParsedSession,
     SessionMetrics,
     ToolCall,
 )
-from reagent.telemetry.profiler import (
+from agentguard.telemetry.profiler import (
     CorrectionHotspot,
     Workflow,
     WorkflowProfile,
@@ -66,7 +66,7 @@ def populated_store(store_path: Path) -> InstinctStore:
             category="agent",
             trust_tier=TrustTier.BUNDLED,
             confidence=1.0,
-            source="reagent-curated",
+            source="agentguard-curated",
         ),
         Instinct(
             instinct_id="i2",
@@ -566,7 +566,7 @@ class TestSuggestApply:
     def test_apply_dry_run(self, tmp_path: Path) -> None:
         """Dry run does not write files."""
         _ = tmp_path
-        from reagent.evaluation.suggest import ApplyResult
+        from agentguard.evaluation.suggest import ApplyResult
 
         result = ApplyResult(applied=2, skipped=1, paths=["a", "b"])
         assert result.applied == 2
@@ -576,7 +576,7 @@ class TestSuggestApply:
         """apply_suggestions creates files from draft content."""
         from unittest.mock import patch
 
-        from reagent.evaluation.suggest import (
+        from agentguard.evaluation.suggest import (
             Suggestion,
             SuggestionReport,
             apply_suggestions,
@@ -599,7 +599,7 @@ class TestSuggestApply:
         )
 
         with patch(
-            "reagent.evaluation.suggest.suggest_for_repo",
+            "agentguard.evaluation.suggest.suggest_for_repo",
             return_value=mock_report,
         ):
             result = apply_suggestions(tmp_path)
@@ -612,7 +612,7 @@ class TestSuggestApply:
     def test_apply_skips_no_draft(self, tmp_path: Path) -> None:
         from unittest.mock import patch
 
-        from reagent.evaluation.suggest import (
+        from agentguard.evaluation.suggest import (
             Suggestion,
             SuggestionReport,
             apply_suggestions,
@@ -632,7 +632,7 @@ class TestSuggestApply:
         )
 
         with patch(
-            "reagent.evaluation.suggest.suggest_for_repo",
+            "agentguard.evaluation.suggest.suggest_for_repo",
             return_value=mock_report,
         ):
             result = apply_suggestions(tmp_path)

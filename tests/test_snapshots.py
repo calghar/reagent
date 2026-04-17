@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from reagent.security.snapshots import SnapshotStore
+from agentguard.security.snapshots import SnapshotStore
 
 
 @pytest.fixture()

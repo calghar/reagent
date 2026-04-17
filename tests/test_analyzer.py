@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from reagent.intelligence.analyzer import RepoProfile, analyze_repo
+from agentguard.intelligence.analyzer import RepoProfile, analyze_repo
 
 
 @pytest.fixture()

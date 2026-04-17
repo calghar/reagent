@@ -1,8 +1,13 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from reagent.core.catalog import Catalog, CatalogEntry, entry_from_parsed, make_asset_id
-from reagent.core.parsers import AssetScope, AssetType, parse_agent
+from agentguard.core.catalog import (
+    Catalog,
+    CatalogEntry,
+    entry_from_parsed,
+    make_asset_id,
+)
+from agentguard.core.parsers import AssetScope, AssetType, parse_agent
 
 
 class TestMakeAssetId:
@@ -37,8 +42,8 @@ class TestEntryFromParsed:
 
 
 class TestCatalog:
-    def test_add_and_get(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_add_and_get(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         entry = CatalogEntry(
             asset_id="myrepo:agent:review",
             asset_type=AssetType.AGENT,
@@ -53,12 +58,12 @@ class TestCatalog:
         assert result is not None
         assert result.name == "review"
 
-    def test_get_nonexistent(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_get_nonexistent(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         assert catalog.get("nope:agent:missing") is None
 
-    def test_remove(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_remove(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         entry = CatalogEntry(
             asset_id="repo:agent:test",
             asset_type=AssetType.AGENT,
@@ -72,8 +77,8 @@ class TestCatalog:
         assert catalog.get("repo:agent:test") is None
         assert catalog.remove("repo:agent:test") is False
 
-    def test_query_by_type(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_query_by_type(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         catalog.add(
             CatalogEntry(
                 asset_id="r:agent:a1",
@@ -99,8 +104,8 @@ class TestCatalog:
         assert len(agents) == 1
         assert agents[0].name == "a1"
 
-    def test_query_by_repo(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_query_by_repo(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         catalog.add(
             CatalogEntry(
                 asset_id="repo1:agent:a",
@@ -126,8 +131,8 @@ class TestCatalog:
         assert len(results) == 1
         assert results[0].asset_id == "repo1:agent:a"
 
-    def test_save_and_load(self, reagent_home: Path) -> None:
-        catalog_path = reagent_home / "catalog.jsonl"
+    def test_save_and_load(self, agentguard_home: Path) -> None:
+        catalog_path = agentguard_home / "catalog.jsonl"
 
         # Save
         catalog = Catalog(catalog_path)
@@ -167,8 +172,8 @@ class TestCatalog:
         catalog.save()
         assert catalog_path.exists()
 
-    def test_all_entries(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_all_entries(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         catalog.add(
             CatalogEntry(
                 asset_id="r:skill:b",
@@ -196,8 +201,8 @@ class TestCatalog:
         assert entries[0].asset_id == "r:agent:a"
         assert entries[1].asset_id == "r:skill:b"
 
-    def test_counts_by_type(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_counts_by_type(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         for i in range(3):
             catalog.add(
                 CatalogEntry(
@@ -224,8 +229,8 @@ class TestCatalog:
         assert counts[AssetType.AGENT] == 3
         assert counts[AssetType.SKILL] == 1
 
-    def test_add_preserves_first_seen(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_add_preserves_first_seen(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         early = datetime(2025, 1, 1, tzinfo=UTC)
 
         catalog.add(
@@ -258,8 +263,8 @@ class TestCatalog:
 
 
 class TestCatalogDiff:
-    def test_diff_detects_new(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_diff_detects_new(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         new_entries = [
             CatalogEntry(
                 asset_id="r:agent:new",
@@ -276,8 +281,8 @@ class TestCatalogDiff:
         assert len(modified) == 0
         assert len(removed) == 0
 
-    def test_diff_detects_modified(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_diff_detects_modified(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         catalog.add(
             CatalogEntry(
                 asset_id="r:agent:a",
@@ -305,8 +310,8 @@ class TestCatalogDiff:
         assert len(modified) == 1
         assert len(removed) == 0
 
-    def test_diff_detects_removed(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_diff_detects_removed(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         catalog.add(
             CatalogEntry(
                 asset_id="r:agent:gone",
@@ -323,8 +328,8 @@ class TestCatalogDiff:
         assert len(modified) == 0
         assert removed == ["r:agent:gone"]
 
-    def test_apply_diff(self, reagent_home: Path) -> None:
-        catalog = Catalog(reagent_home / "catalog.jsonl")
+    def test_apply_diff(self, agentguard_home: Path) -> None:
+        catalog = Catalog(agentguard_home / "catalog.jsonl")
         catalog.add(
             CatalogEntry(
                 asset_id="r:agent:keep",
@@ -360,8 +365,8 @@ class TestCatalogDiff:
         assert catalog.get("r:skill:added") is not None
         assert catalog.get("r:agent:remove") is None
 
-    def test_load_skips_invalid_lines(self, reagent_home: Path) -> None:
-        catalog_path = reagent_home / "catalog.jsonl"
+    def test_load_skips_invalid_lines(self, agentguard_home: Path) -> None:
+        catalog_path = agentguard_home / "catalog.jsonl"
         catalog_path.write_text("not valid json\n\n{also invalid\n")
 
         catalog = Catalog(catalog_path)

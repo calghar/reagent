@@ -2,13 +2,13 @@
 
 ## Installation
 
-> **Reagent is not yet published to PyPI.** Install from source using the instructions below.
+> **AgentGuard is not yet published to PyPI.** Install from source using the instructions below.
 
 ### From Source (recommended)
 
 ```bash
-git clone https://github.com/calghar/reagent.git
-cd reagent
+git clone https://github.com/calghar/agentguard.git
+cd agentguard
 
 # Core CLI only
 uv sync
@@ -17,10 +17,10 @@ uv sync
 uv sync --extra dev
 ```
 
-Then run reagent via:
+Then run agentguard via:
 
 ```bash
-uv run reagent --help
+uv run agentguard --help
 ```
 
 ### Optional Extras
@@ -33,12 +33,12 @@ uv sync --extra dev             # Dev tools (pytest, ruff, mypy)
 ### From PyPI (coming soon)
 
 ```bash
-pip install reagent
+pip install agentguard
 ```
 
 ## LLM Configuration
 
-Reagent's AI-powered features require an LLM provider API key. Without one, Reagent
+AgentGuard's AI-powered features require an LLM provider API key. Without one, AgentGuard
 falls back to rule-based template generation which works but produces less tailored assets.
 
 ### Supported Providers
@@ -56,11 +56,11 @@ Set the env variable for your preferred provider:
 export ANTHROPIC_API_KEY="sk-ant-api03-..."
 ```
 
-Reagent auto-detects which provider to use based on available API keys.
+AgentGuard auto-detects which provider to use based on available API keys.
 
 ### Config File
 
-For persistent configuration, create `~/.reagent/config.yaml`:
+For persistent configuration, create `~/.agentguard/config.yaml`:
 
 ```yaml
 llm:
@@ -72,10 +72,10 @@ See the [Configuration Reference](configuration.md) for all available settings a
 
 ## First Scan
 
-Run `reagent inventory` to scan your repositories and build the asset catalog:
+Run `agentguard inventory` to scan your repositories and build the asset catalog:
 
 ```bash
-reagent inventory
+agentguard inventory
 ```
 
 This scans all configured roots (default: `~/Development`) for `.claude/` directories and indexes every agent, skill, hook, command, rule, and settings file it finds.
@@ -83,7 +83,7 @@ This scans all configured roots (default: `~/Development`) for `.claude/` direct
 To scan a single repo:
 
 ```bash
-reagent inventory --repo ./my-project
+agentguard inventory --repo ./my-project
 ```
 
 ## Understanding the Catalog
@@ -91,21 +91,21 @@ reagent inventory --repo ./my-project
 After scanning, view your assets:
 
 ```bash
-reagent catalog
+agentguard catalog
 ```
 
 Filter by type:
 
 ```bash
-reagent catalog --type agent
-reagent catalog --type skill
-reagent catalog --repo my-project
+agentguard catalog --type agent
+agentguard catalog --type skill
+agentguard catalog --repo my-project
 ```
 
 View details for a specific asset:
 
 ```bash
-reagent show <asset-id>
+agentguard show <asset-id>
 ```
 
 Asset IDs follow the format `repo-name:type:name` (e.g., `my-project:agent:code-reviewer`).
@@ -117,7 +117,7 @@ Asset IDs follow the format `repo-name:type:name` (e.g., `my-project:agent:code-
 Detect languages, frameworks, and conventions:
 
 ```bash
-reagent analyze ./my-project
+agentguard analyze ./my-project
 ```
 
 ### Get Suggestions
@@ -125,7 +125,7 @@ reagent analyze ./my-project
 Get actionable recommendations for improving your assets:
 
 ```bash
-reagent suggest --repo ./my-project
+agentguard suggest --repo ./my-project
 ```
 
 ### Security Scan
@@ -133,8 +133,8 @@ reagent suggest --repo ./my-project
 Audit a `.claude/` directory for security issues:
 
 ```bash
-reagent scan ./my-project/.claude
-reagent audit --repo ./my-project
+agentguard scan ./my-project/.claude
+agentguard audit --repo ./my-project
 ```
 
 ### Detect Drift
@@ -142,15 +142,15 @@ reagent audit --repo ./my-project
 Check for stale, outdated, or missing assets:
 
 ```bash
-reagent drift --repo ./my-project
+agentguard drift --repo ./my-project
 ```
 
 ### CI Integration
 
-Run Reagent in CI pipelines with automatic quality gates:
+Run AgentGuard in CI pipelines with automatic quality gates:
 
 ```bash
-reagent ci --threshold 70   # Exit 1 if below 70, exit 2 if security issues
+agentguard ci --threshold 70   # Exit 1 if below 70, exit 2 if security issues
 ```
 
 See the [CI Integration Guide](ci-integration.md) for setup instructions with GitLab CI, Jenkins, and other providers.
@@ -160,7 +160,7 @@ See the [CI Integration Guide](ci-integration.md) for setup instructions with Gi
 Score your assets based on actual session telemetry:
 
 ```bash
-reagent evaluate --repo ./my-project
+agentguard evaluate --repo ./my-project
 ```
 
 See the [CLI Reference](cli-reference.md) for full command documentation.

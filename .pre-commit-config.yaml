@@ -37,7 +37,7 @@ repos:
       - id: mypy
         additional_dependencies:
           [pydantic>=2.0, types-PyYAML>=6.0, click>=8.1, rich>=13.0]
-        args: [--strict, --ignore-missing-imports, src/reagent]
+        args: [--strict, --ignore-missing-imports, src/agentguard]
         pass_filenames: false
 
 

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "reagent"
+name = "agentguard"
 version = "0.1.0"
 description = "Scan, evaluate, and secure AI agent assets across repositories"
 readme = "README.md"
@@ -49,20 +49,20 @@ dev = [
 ]
 
 [project.scripts]
-reagent = "reagent.cli:main"
+agentguard = "agentguard.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/calghar/reagent"
-Documentation = "https://calghar.github.io/reagent"
-Repository = "https://github.com/calghar/reagent"
-Issues = "https://github.com/calghar/reagent/issues"
-Changelog = "https://github.com/calghar/reagent/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/calghar/agentguard"
+Documentation = "https://calghar.github.io/agentguard"
+Repository = "https://github.com/calghar/agentguard"
+Issues = "https://github.com/calghar/agentguard/issues"
+Changelog = "https://github.com/calghar/agentguard/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/reagent"]
+packages = ["src/agentguard"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/reagent/data" = "reagent/data"
+"src/agentguard/data" = "agentguard/data"
 
 [tool.ruff]
 target-version = "py313"
@@ -102,7 +102,7 @@ exclude_dirs = ["tests", "scripts"]
 skips = ["B110", "B311", "B404", "B603", "B607", "B608"]
 
 [tool.coverage.run]
-source = ["reagent"]
+source = ["agentguard"]
 
 [tool.coverage.report]
 show_missing = true

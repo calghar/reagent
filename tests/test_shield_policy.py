@@ -1,5 +1,5 @@
-from reagent.security.trust import TrustLevel
-from reagent.shield.enforcer import (
+from agentguard.security.trust import TrustLevel
+from agentguard.shield.enforcer import (
     InMemoryPolicySource,
     ShieldEnforcer,
     ShieldOutcome,

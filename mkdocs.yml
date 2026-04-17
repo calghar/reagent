@@ -1,8 +1,8 @@
-site_name: Reagent
-site_url: https://calghar.github.io/reagent
+site_name: AgentGuard
+site_url: https://calghar.github.io/agentguard
 site_description: Manage, secure, and evolve Claude Code assets across repositories
-repo_url: https://github.com/calghar/reagent
-repo_name: calghar/reagent
+repo_url: https://github.com/calghar/agentguard
+repo_name: calghar/agentguard
 edit_uri: ""
 
 theme:

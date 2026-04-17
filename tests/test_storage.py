@@ -5,17 +5,17 @@ from pathlib import Path
 
 import pytest
 
-from reagent.core.parsers import AssetType
-from reagent.llm.cache import CacheEntry, GenerationCache, make_cache_key
-from reagent.llm.config import CostTier, LLMConfig, select_model
-from reagent.llm.instincts import Instinct, InstinctStore, TrustTier
-from reagent.llm.prompts import (
+from agentguard.core.parsers import AssetType
+from agentguard.llm.cache import CacheEntry, GenerationCache, make_cache_key
+from agentguard.llm.config import CostTier, LLMConfig, select_model
+from agentguard.llm.instincts import Instinct, InstinctStore, TrustTier
+from agentguard.llm.prompts import (
     ProfileTier,
     PromptBudget,
     select_profile_tier,
 )
-from reagent.storage import ReagentDB
-from reagent.storage.migrations import CURRENT_VERSION, apply_migrations
+from agentguard.storage import AgentGuardDB
+from agentguard.storage.migrations import CURRENT_VERSION, apply_migrations
 
 
 @pytest.fixture()
@@ -24,40 +24,40 @@ def db_path(tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
-def db(db_path: Path) -> Generator[ReagentDB]:
-    rdb = ReagentDB(path=db_path)
+def db(db_path: Path) -> Generator[AgentGuardDB]:
+    rdb = AgentGuardDB(path=db_path)
     rdb.connect()
     yield rdb
     rdb.close()
 
 
 @pytest.fixture()
-def conn(db: ReagentDB) -> sqlite3.Connection:
+def conn(db: AgentGuardDB) -> sqlite3.Connection:
     return db.connect()
 
 
-class TestReagentDB:
+class TestAgentGuardDB:
     def test_connect_creates_file(self, db_path: Path) -> None:
-        rdb = ReagentDB(path=db_path)
+        rdb = AgentGuardDB(path=db_path)
         rdb.connect()
         assert db_path.exists()
         rdb.close()
 
-    def test_wal_mode_enabled(self, db: ReagentDB) -> None:
+    def test_wal_mode_enabled(self, db: AgentGuardDB) -> None:
         conn = db.connect()
         row = conn.execute("PRAGMA journal_mode").fetchone()
         assert row[0] == "wal"
 
-    def test_migration_sets_version(self, db: ReagentDB) -> None:
+    def test_migration_sets_version(self, db: AgentGuardDB) -> None:
         assert db.version == CURRENT_VERSION
 
     def test_context_manager(self, db_path: Path) -> None:
-        with ReagentDB(path=db_path) as rdb:
+        with AgentGuardDB(path=db_path) as rdb:
             assert rdb.version == CURRENT_VERSION
         # connection closed after exit
         assert rdb._conn is None
 
-    def test_double_connect_returns_same(self, db: ReagentDB) -> None:
+    def test_double_connect_returns_same(self, db: AgentGuardDB) -> None:
         c1 = db.connect()
         c2 = db.connect()
         assert c1 is c2
@@ -79,7 +79,7 @@ class TestInstinctsCRUD:
             category="generation",
             trust_tier=TrustTier.BUNDLED,
             confidence=0.9,
-            source="reagent-core",
+            source="agentguard-core",
         )
         store.add(inst)
         store.save()
@@ -120,7 +120,7 @@ class TestInstinctsCRUD:
                 category="hook",
                 trust_tier=TrustTier.BUNDLED,
                 confidence=0.85,
-                source="reagent-core",
+                source="agentguard-core",
             )
         )
         store.save()
@@ -374,7 +374,7 @@ class TestJSONLMigration:
 class TestMigrations:
     def test_migration_idempotent(self, db_path: Path) -> None:
         """Running migrations twice doesn't fail."""
-        rdb = ReagentDB(path=db_path)
+        rdb = AgentGuardDB(path=db_path)
         rdb.connect()
         # First migration already ran
         assert rdb.version == CURRENT_VERSION

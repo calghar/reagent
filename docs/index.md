@@ -13,7 +13,7 @@
 | [Threat Model](threat-model.md) | STRIDE, attack classes, rule → MITRE ATLAS / OWASP AST10 map |
 | [Behavioral Attestation](attestation.md) | Sandbox replay, fingerprints, signing, attestation store |
 | [BATT Runtime Shield](shield.md) | Trust-tier-gated tool-call enforcement at invocation time |
-| [Comparison](comparison.md) | How Reagent compares to related projects |
+| [Comparison](comparison.md) | How AgentGuard compares to related projects |
 
 ## Also See
 

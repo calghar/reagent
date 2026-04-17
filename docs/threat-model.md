@@ -50,7 +50,7 @@ AgentGuard protects the **authoring → PR → review → merge → install → 
 
 Every scanner rule declares its `mitre_atlas` and `owasp_ast10` fields. The test `tests/test_security_taxonomy.py::test_every_critical_rule_has_atlas_tag` enforces that every CRITICAL-severity rule carries at least one ATLAS technique ID; no rule of any severity may ship without an AST10 ID.
 
-Summary of built-in coverage (see `src/reagent/security/scanner.py` for authoritative definitions):
+Summary of built-in coverage (see `src/agentguard/security/scanner.py` for authoritative definitions):
 
 | Rule | Severity | MITRE ATLAS | AST10 |
 |---|---|---|---|

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from reagent.security.scanner import (
+from agentguard.security.scanner import (
     ScanReport,
     SecurityRule,
     Severity,
@@ -447,7 +447,7 @@ class TestRuleDetection:
 class TestScanReport:
     def test_risk_calculation(self) -> None:
         report = ScanReport()
-        from reagent.security.scanner import SecurityFinding
+        from agentguard.security.scanner import SecurityFinding
 
         report.add(
             SecurityFinding(
@@ -464,7 +464,7 @@ class TestScanReport:
 
     def test_pass_verdict(self) -> None:
         report = ScanReport()
-        from reagent.security.scanner import SecurityFinding
+        from agentguard.security.scanner import SecurityFinding
 
         report.add(
             SecurityFinding(

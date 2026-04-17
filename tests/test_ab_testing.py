@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from reagent.core.catalog import Catalog, CatalogEntry
-from reagent.core.parsers import AssetType
-from reagent.evaluation.evaluator import ABTestStore, create_variant, promote_variant
+from agentguard.core.catalog import Catalog, CatalogEntry
+from agentguard.core.parsers import AssetType
+from agentguard.evaluation.evaluator import ABTestStore, create_variant, promote_variant
 
 
 class TestABTestStoreBasics:

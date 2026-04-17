@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from reagent.config import CatalogConfig, ReagentConfig, ScanConfig
-from reagent.core.catalog import Catalog
-from reagent.core.inventory import scan_all, scan_claude_dir, scan_repo
-from reagent.core.parsers import AssetScope, AssetType
+from agentguard.config import AgentGuardConfig, CatalogConfig, ScanConfig
+from agentguard.core.catalog import Catalog
+from agentguard.core.inventory import scan_all, scan_claude_dir, scan_repo
+from agentguard.core.parsers import AssetScope, AssetType
 
 
 class TestScanRepo:
@@ -122,7 +122,7 @@ class TestScanAll:
                 f"---\nname: test\ndescription: test in {name}\n---\nBody.\n"
             )
 
-        config = ReagentConfig(
+        config = AgentGuardConfig(
             scan=ScanConfig(roots=[tmp_path / "root"], exclude_patterns=[]),
             catalog=CatalogConfig(path=tmp_path / "catalog.jsonl"),
         )
@@ -142,7 +142,7 @@ class TestScanAll:
         agents.mkdir()
         (agents / "test.md").write_text("---\nname: test\n---\nBody.\n")
 
-        config = ReagentConfig(
+        config = AgentGuardConfig(
             scan=ScanConfig(
                 roots=[tmp_path / "root"],
                 exclude_patterns=["node_modules"],
@@ -162,7 +162,7 @@ class TestScanAll:
         agents.mkdir()
         (agents / "test.md").write_text("---\nname: test\n---\nBody.\n")
 
-        config = ReagentConfig(
+        config = AgentGuardConfig(
             scan=ScanConfig(
                 roots=[tmp_path / "shared", tmp_path / "shared"],
                 exclude_patterns=[],
@@ -175,7 +175,7 @@ class TestScanAll:
         assert len(agent_entries) == 1
 
     def test_scan_nonexistent_root(self, tmp_path: Path) -> None:
-        config = ReagentConfig(
+        config = AgentGuardConfig(
             scan=ScanConfig(roots=[tmp_path / "nonexistent"], exclude_patterns=[]),
             catalog=CatalogConfig(path=tmp_path / "catalog.jsonl"),
         )
@@ -197,13 +197,13 @@ class TestInventoryIntegration:
         )
 
         catalog_path = tmp_path / "catalog.jsonl"
-        config = ReagentConfig(
+        config = AgentGuardConfig(
             scan=ScanConfig(roots=[tmp_path / "root"], exclude_patterns=[]),
             catalog=CatalogConfig(path=catalog_path),
         )
 
         # First scan
-        from reagent.core.inventory import run_inventory
+        from agentguard.core.inventory import run_inventory
 
         catalog = Catalog(catalog_path)
         catalog.load()
@@ -232,12 +232,12 @@ class TestInventoryIntegration:
         agent_file.write_text("---\nname: review\n---\nOriginal.\n")
 
         catalog_path = tmp_path / "catalog.jsonl"
-        config = ReagentConfig(
+        config = AgentGuardConfig(
             scan=ScanConfig(roots=[tmp_path / "root"], exclude_patterns=[]),
             catalog=CatalogConfig(path=catalog_path),
         )
 
-        from reagent.core.inventory import run_inventory
+        from agentguard.core.inventory import run_inventory
 
         catalog = Catalog(catalog_path)
         catalog.load()

@@ -1,4 +1,4 @@
-from reagent.security.scanner import Severity, get_rules
+from agentguard.security.scanner import Severity, get_rules
 
 
 def test_every_critical_rule_has_atlas_tag() -> None:

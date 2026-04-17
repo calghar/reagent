@@ -2,11 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from reagent.attestation.store import AttestationStore
-from reagent.sandbox.corpus import Probe, PromptCorpus
-from reagent.sandbox.drivers import DriverEvent, DriverEventKind, MockDriver
-from reagent.sandbox.engine import SandboxEngine
-from reagent.storage import ReagentDB
+from agentguard.attestation.store import AttestationStore
+from agentguard.sandbox.corpus import Probe, PromptCorpus
+from agentguard.sandbox.drivers import DriverEvent, DriverEventKind, MockDriver
+from agentguard.sandbox.engine import SandboxEngine
+from agentguard.storage import AgentGuardDB
 
 
 def _tool_event(name: str, **args: object) -> DriverEvent:
@@ -45,7 +45,7 @@ def _build_engine(tmp_path: Path) -> tuple[SandboxEngine, AttestationStore]:
         ],
     }
     driver = MockDriver(scripted=scripted)
-    db = ReagentDB(tmp_path / "reagent.db")
+    db = AgentGuardDB(tmp_path / "agentguard.db")
     store = AttestationStore(db=db)
     engine = SandboxEngine(driver=driver, corpus=corpus, timeout_seconds=1)
     return engine, store
@@ -62,7 +62,7 @@ def test_mock_driver_produces_fingerprint(
     asset_file: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     key_path = tmp_path / "key.pem"
-    monkeypatch.setenv("REAGENT_DB_PATH", str(tmp_path / "reagent.db"))
+    monkeypatch.setenv("AGENTGUARD_DB_PATH", str(tmp_path / "agentguard.db"))
     engine, store = _build_engine(tmp_path)
     record = engine.attest(
         asset_path=asset_file,
@@ -81,7 +81,7 @@ def test_mock_driver_produces_fingerprint(
 def test_fingerprint_deterministic_across_runs(
     asset_file: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("REAGENT_DB_PATH", str(tmp_path / "reagent.db"))
+    monkeypatch.setenv("AGENTGUARD_DB_PATH", str(tmp_path / "agentguard.db"))
     key_path = tmp_path / "key.pem"
     engine_a, store_a = _build_engine(tmp_path / "a")
     engine_b, store_b = _build_engine(tmp_path / "b")

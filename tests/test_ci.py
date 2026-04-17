@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from reagent.ci.drift import DriftDetector, DriftReport
-from reagent.ci.reporter import CIReporter
-from reagent.ci.runner import (
+from agentguard.ci.drift import DriftDetector, DriftReport
+from agentguard.ci.reporter import CIReporter
+from agentguard.ci.runner import (
     CIConfig,
     CIMode,
     CIResult,
@@ -30,7 +30,7 @@ def _make_asset_result(
     score: float = 75.0,
     threshold: float = 60.0,
 ) -> dict[str, Any]:
-    passed = score == 0.0 or score >= threshold
+    passed = score == abs(0.0) or score >= threshold
     return {
         "name": name,
         "type": asset_type,
@@ -168,9 +168,7 @@ class TestCIResult:
     ) -> None:
         assets = [_make_asset_result(score=80.0)]
         assert (
-            _determine_passed(
-                assets, security_grade, security_enabled=security_enabled
-            )
+            _determine_passed(assets, security_grade, security_enabled=security_enabled)
             is expected
         )
 
@@ -199,8 +197,7 @@ class TestDriftDetector:
         claude_dir.mkdir(parents=True)
         agent_file = claude_dir / "test-agent.md"
         agent_file.write_text(
-            f"---\nname: test-agent\n---\n"
-            f"Run `./scripts/{script_name}` to deploy.\n",
+            f"---\nname: test-agent\n---\nRun `./scripts/{script_name}` to deploy.\n",
             encoding="utf-8",
         )
         if create_script:
@@ -213,8 +210,7 @@ class TestDriftDetector:
 
         if expect_stale:
             assert any(
-                r.drift_type == "stale" and script_name in r.details
-                for r in reports
+                r.drift_type == "stale" and script_name in r.details for r in reports
             )
         else:
             assert len(reports) == 0
@@ -237,9 +233,7 @@ class TestDriftDetector:
         agents_dir = tmp_path / ".claude" / "agents"
         if agent_exists:
             agents_dir.mkdir(parents=True)
-            (agents_dir / "ci-agent.md").write_text(
-                "# CI Agent\n", encoding="utf-8"
-            )
+            (agents_dir / "ci-agent.md").write_text("# CI Agent\n", encoding="utf-8")
 
         detector = DriftDetector()
         reports = detector._check_missing_ci_asset(profile, agents_dir)
@@ -271,7 +265,7 @@ class TestDriftDetector:
 
         config_data = {"llm": {"provider": "anthropic"}}
         with patch(
-            "reagent.ci.drift._load_reagent_config", return_value=config_data
+            "agentguard.ci.drift._load_agentguard_config", return_value=config_data
         ):
             detector = DriftDetector()
             reports = detector._check_config_drift()
@@ -283,7 +277,7 @@ class TestDriftDetector:
 
     def test_detect_empty_repo_no_drift(self, tmp_path: Path) -> None:
         detector = DriftDetector()
-        with patch("reagent.ci.drift._load_reagent_config", return_value=None):
+        with patch("agentguard.ci.drift._load_agentguard_config", return_value=None):
             reports = detector.detect(tmp_path)
         stale = [r for r in reports if r.drift_type == "stale"]
         config_drift = [r for r in reports if r.drift_type == "config_drift"]
@@ -351,7 +345,7 @@ class TestCIReporter:
         [
             pytest.param(
                 True,
-                ["Reagent Asset Quality Check", "82", "test-runner", "\u2713"],
+                ["AgentGuard Asset Quality Check", "82", "test-runner", "\u2713"],
                 id="passing",
             ),
             pytest.param(
@@ -454,7 +448,7 @@ class TestCIRunner:
         config = CIConfig(repo_path=tmp_path, mode=CIMode.CHECK)
         result = CIRunner().run(config)
 
-        assert result.overall_score == 0.0
+        assert result.overall_score == abs(0.0)
         assert result.exit_code == 0
         assert result.asset_results == []
 
@@ -478,11 +472,9 @@ class TestCIRunner:
         if not expect_passed:
             assets[0]["passed"] = False
         with patch(
-            "reagent.ci.runner.CIRunner._evaluate_assets", return_value=assets
+            "agentguard.ci.runner.CIRunner._evaluate_assets", return_value=assets
         ):
-            config = CIConfig(
-                repo_path=tmp_path, mode=CIMode.CHECK, threshold=60.0
-            )
+            config = CIConfig(repo_path=tmp_path, mode=CIMode.CHECK, threshold=60.0)
             result = CIRunner().run(config)
 
         assert result.passed is expect_passed
@@ -498,11 +490,11 @@ class TestCIRunner:
 
         with (
             patch(
-                "reagent.ci.runner.CIRunner._evaluate_assets",
+                "agentguard.ci.runner.CIRunner._evaluate_assets",
                 return_value=assets,
             ),
-            patch("reagent.ci.runner.CIRunner._run_security", return_value="A"),
-            patch("reagent.ci.runner.CIRunner._run_drift", return_value=[]),
+            patch("agentguard.ci.runner.CIRunner._run_security", return_value="A"),
+            patch("agentguard.ci.runner.CIRunner._run_drift", return_value=[]),
         ):
             config = CIConfig(
                 repo_path=tmp_path,
@@ -518,15 +510,13 @@ class TestCIRunner:
         assets = [_make_asset_result("suggest-agent", "agent", 70.0)]
         with (
             patch(
-                "reagent.ci.runner.CIRunner._evaluate_assets",
+                "agentguard.ci.runner.CIRunner._evaluate_assets",
                 return_value=assets,
             ),
-            patch("reagent.ci.runner.CIRunner._run_security", return_value="B"),
-            patch("reagent.ci.runner.CIRunner._run_drift", return_value=[]),
+            patch("agentguard.ci.runner.CIRunner._run_security", return_value="B"),
+            patch("agentguard.ci.runner.CIRunner._run_drift", return_value=[]),
         ):
-            config = CIConfig(
-                repo_path=tmp_path, mode=CIMode.SUGGEST, threshold=60.0
-            )
+            config = CIConfig(repo_path=tmp_path, mode=CIMode.SUGGEST, threshold=60.0)
             result = CIRunner().run(config)
 
         assert result.overall_score == pytest.approx(70.0)
@@ -550,11 +540,11 @@ class TestCIRunner:
     ) -> None:
         assets = [_make_asset_result("agent", "agent", 80.0)]
         mocks: dict[str, Any] = {
-            "reagent.ci.runner.CIRunner._evaluate_assets": assets,
-            "reagent.ci.runner.CIRunner._run_drift": [],
+            "agentguard.ci.runner.CIRunner._evaluate_assets": assets,
+            "agentguard.ci.runner.CIRunner._run_drift": [],
         }
         if mock_grade is not None:
-            mocks["reagent.ci.runner.CIRunner._run_security"] = mock_grade
+            mocks["agentguard.ci.runner.CIRunner._run_security"] = mock_grade
 
         with ExitStack() as stack:
             for target, rv in mocks.items():
@@ -580,7 +570,7 @@ class TestCLI:
 
     @pytest.fixture()
     def cli_app(self) -> Any:
-        from reagent.cli import cli
+        from agentguard.cli import cli
 
         return cli
 
@@ -622,7 +612,7 @@ class TestCLI:
         mock_result = _make_ci_result(
             overall_score=overall_score, passed=passed, exit_code=exit_code
         )
-        with patch("reagent.ci.runner.CIRunner.run", return_value=mock_result):
+        with patch("agentguard.ci.runner.CIRunner.run", return_value=mock_result):
             result = runner.invoke(
                 cli_app,
                 ["ci", "--repo", str(tmp_path), "--no-security"],
@@ -633,7 +623,7 @@ class TestCLI:
         self, runner: CliRunner, cli_app: Any, tmp_path: Path
     ) -> None:
         mock_result = _make_ci_result(overall_score=75.0, exit_code=0)
-        with patch("reagent.ci.runner.CIRunner.run", return_value=mock_result):
+        with patch("agentguard.ci.runner.CIRunner.run", return_value=mock_result):
             result = runner.invoke(
                 cli_app,
                 [
@@ -647,7 +637,7 @@ class TestCLI:
                 catch_exceptions=False,
             )
         assert result.exit_code == 0
-        assert "Reagent" in result.output
+        assert "AgentGuard" in result.output
 
     def test_cli_ci_json_output(
         self, runner: CliRunner, cli_app: Any, tmp_path: Path
@@ -655,7 +645,7 @@ class TestCLI:
         import json
 
         mock_result = _make_ci_result(overall_score=80.0, exit_code=0)
-        with patch("reagent.ci.runner.CIRunner.run", return_value=mock_result):
+        with patch("agentguard.ci.runner.CIRunner.run", return_value=mock_result):
             result = runner.invoke(
                 cli_app,
                 ["ci", "--repo", str(tmp_path), "--no-security", "--json"],
@@ -668,7 +658,7 @@ class TestCLI:
     def test_cli_drift_no_drift(
         self, runner: CliRunner, cli_app: Any, tmp_path: Path
     ) -> None:
-        with patch("reagent.ci.drift.DriftDetector.detect", return_value=[]):
+        with patch("agentguard.ci.drift.DriftDetector.detect", return_value=[]):
             result = runner.invoke(
                 cli_app,
                 ["drift", "--repo", str(tmp_path)],
@@ -689,9 +679,7 @@ class TestCLI:
                 severity="warning",
             )
         ]
-        with patch(
-            "reagent.ci.drift.DriftDetector.detect", return_value=reports
-        ):
+        with patch("agentguard.ci.drift.DriftDetector.detect", return_value=reports):
             result = runner.invoke(
                 cli_app,
                 ["drift", "--repo", str(tmp_path)],

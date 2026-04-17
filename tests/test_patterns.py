@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from reagent.core.catalog import Catalog, CatalogEntry
-from reagent.core.parsers import AssetScope, AssetType
-from reagent.intelligence.patterns import (
+from agentguard.core.catalog import Catalog, CatalogEntry
+from agentguard.core.parsers import AssetScope, AssetType
+from agentguard.intelligence.patterns import (
     PatternStage,
     PatternTemplate,
     extract_all_patterns,

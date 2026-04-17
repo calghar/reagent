@@ -1,15 +1,15 @@
 # Security Scanning
 
-Reagent includes a security pipeline for auditing Claude Code assets. This covers static analysis, import security, trust management, and integrity monitoring.
+AgentGuard includes a security pipeline for auditing Claude Code assets. This covers static analysis, import security, trust management, and integrity monitoring.
 
-## How `reagent scan` Works
+## How `agentguard scan` Works
 
 The scanner reads asset files (agents, skills, hooks, commands, rules, settings) and applies 20+ static analysis rules to detect security issues.
 
 ```bash
-reagent scan ./path/to/file          # Scan a single file
-reagent scan ./my-project/.claude    # Scan an entire directory
-reagent audit --repo ./my-project    # Audit a repo's .claude/ directory
+agentguard scan ./path/to/file          # Scan a single file
+agentguard scan ./my-project/.claude    # Scan an entire directory
+agentguard audit --repo ./my-project    # Audit a repo's .claude/ directory
 ```
 
 Each finding includes:
@@ -51,7 +51,7 @@ Rules that detect potential issues worth reviewing:
 
 ## Import Pipeline
 
-When importing assets from external sources, Reagent enforces a multi-stage security pipeline:
+When importing assets from external sources, AgentGuard enforces a multi-stage security pipeline:
 
 ```text
 Fetch → Isolate → Scan → Review → Install
@@ -64,13 +64,13 @@ Fetch → Isolate → Scan → Review → Install
 5. **Install** — Approved assets are copied to the target repo's `.claude/` directory with trust level set to UNTRUSTED
 
 ```bash
-reagent import https://gist.github.com/user/abc123
-reagent import ./shared-agent.md --target-repo ./my-project
+agentguard import https://gist.github.com/user/abc123
+agentguard import ./shared-agent.md --target-repo ./my-project
 ```
 
 ## Trust Model
 
-Reagent uses a 4-level trust model for assets:
+AgentGuard uses a 4-level trust model for assets:
 
 | Level | Name | Description |
 | --- | --- | --- |
@@ -82,8 +82,8 @@ Reagent uses a 4-level trust model for assets:
 ### Managing Trust
 
 ```bash
-reagent trust show <asset-id>                          # View trust level
-reagent trust promote <asset-id> --level 2 --reason "Reviewed"  # Promote
+agentguard trust show <asset-id>                          # View trust level
+agentguard trust promote <asset-id> --level 2 --reason "Reviewed"  # Promote
 ```
 
 Trust transitions are logged with timestamps and reasons for audit trails.
@@ -97,11 +97,11 @@ Trust transitions are logged with timestamps and reasons for audit trails.
 
 ## Integrity Monitoring
 
-Reagent tracks content hashes for all cataloged assets. The integrity checker detects unauthorized modifications:
+AgentGuard tracks content hashes for all cataloged assets. The integrity checker detects unauthorized modifications:
 
 ```bash
-reagent integrity check     # Verify all asset hashes
-reagent integrity report    # Show modified/missing assets
+agentguard integrity check     # Verify all asset hashes
+agentguard integrity report    # Show modified/missing assets
 ```
 
 The checker compares current file hashes against the catalog and reports:
@@ -109,16 +109,16 @@ The checker compares current file hashes against the catalog and reports:
 - **Modified** — file content has changed since last scan
 - **Missing** — file has been deleted but is still in the catalog
 
-Integrity events are logged to `~/.reagent/security/integrity-log.jsonl` for audit trails.
+Integrity events are logged to `~/.agentguard/security/integrity-log.jsonl` for audit trails.
 
 ## Snapshots and Rollback
 
 All asset versions are stored in a content-addressed snapshot store:
 
 ```bash
-reagent history <asset-id>              # View version timeline
-reagent rollback <asset-id> --snapshot 3  # Restore a previous version
-reagent rollback-best <asset-id>        # Restore best-quality version
+agentguard history <asset-id>              # View version timeline
+agentguard rollback <asset-id> --snapshot 3  # Restore a previous version
+agentguard rollback-best <asset-id>        # Restore best-quality version
 ```
 
 Snapshots are triggered on catalog updates, imports, and manual changes.

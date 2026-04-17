@@ -2,8 +2,8 @@ from pathlib import Path
 
 import yaml
 
-from reagent.telemetry.events import TaskBlock, ToolCall, parse_session
-from reagent.telemetry.profiler import (
+from agentguard.telemetry.events import TaskBlock, ToolCall, parse_session
+from agentguard.telemetry.profiler import (
     Workflow,
     WorkflowProfile,
     _extract_workflows,

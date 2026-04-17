@@ -2,16 +2,16 @@ from pathlib import Path
 
 import pytest
 
-from reagent.attestation import (
+from agentguard.attestation import (
     AttestationStore,
     CounterfactualGate,
 )
-from reagent.attestation.models import sign_fingerprint
-from reagent.ci.runner import _determine_exit_code
-from reagent.sandbox.capture import events_to_fingerprint
-from reagent.sandbox.corpus import Probe, PromptCorpus
-from reagent.sandbox.drivers import DriverEvent, DriverEventKind, MockDriver
-from reagent.security.trust import TrustLevel
+from agentguard.attestation.models import sign_fingerprint
+from agentguard.ci.runner import _determine_exit_code
+from agentguard.sandbox.capture import events_to_fingerprint
+from agentguard.sandbox.corpus import Probe, PromptCorpus
+from agentguard.sandbox.drivers import DriverEvent, DriverEventKind, MockDriver
+from agentguard.security.trust import TrustLevel
 
 
 def _tool(name: str, **args: object) -> DriverEvent:
@@ -30,7 +30,7 @@ def asset_file(tmp_path: Path) -> Path:
 def test_new_egress_blocks_merge(
     asset_file: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("REAGENT_DB_PATH", str(tmp_path / "reagent.db"))
+    monkeypatch.setenv("AGENTGUARD_DB_PATH", str(tmp_path / "agentguard.db"))
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
     baseline_corpus = PromptCorpus(probes=[Probe(id="p", prompt="probe")])

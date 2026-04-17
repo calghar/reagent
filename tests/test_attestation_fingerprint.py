@@ -1,11 +1,11 @@
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from reagent.attestation import (
+from agentguard.attestation import (
     BehavioralFingerprint,
     sign_fingerprint,
     verify_attestation,
 )
-from reagent.security.trust import TrustLevel
+from agentguard.security.trust import TrustLevel
 
 
 def _fp(**overrides: object) -> BehavioralFingerprint:

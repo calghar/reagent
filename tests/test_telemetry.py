@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from reagent.telemetry.events import parse_session
+from agentguard.telemetry.events import parse_session
 
 FIXTURES = Path(__file__).parent / "fixtures" / "transcripts"
 

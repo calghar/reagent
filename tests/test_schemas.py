@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from reagent.intelligence.schema_validator import (
+from agentguard.intelligence.schema_validator import (
     check_schemas,
     reset_schemas,
     schema_is_stale,

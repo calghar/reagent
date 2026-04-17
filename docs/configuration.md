@@ -1,34 +1,34 @@
 # Configuration Reference
 
-Reagent stores its configuration at `~/.reagent/config.yaml`. If this file does not exist, all settings fall back to sensible defaults — no configuration is required to get started.
+AgentGuard stores its configuration at `~/.agentguard/config.yaml`. If this file does not exist, all settings fall back to sensible defaults — no configuration is required to get started.
 
 ## Config File Location
 
 ```
-~/.reagent/
+~/.agentguard/
 ├── config.yaml          # Main configuration
 ├── catalog.jsonl         # Asset catalog
 ├── instincts.json        # Extracted instincts (learned patterns)
 ├── events.jsonl          # Telemetry event log
-├── reagent.db            # SQLite database (evaluations, snapshots, trust)
-├── reagent.log           # Application log
+├── agentguard.db            # SQLite database (evaluations, snapshots, trust)
+├── agentguard.log           # Application log
 ├── patterns/             # Extracted reusable patterns
 ├── workflows/            # Repo analysis profiles
 └── schemas/              # Asset validation schemas
 ```
 
-Create the config file manually or let Reagent generate defaults on first run:
+Create the config file manually or let AgentGuard generate defaults on first run:
 
 ```bash
-mkdir -p ~/.reagent
-touch ~/.reagent/config.yaml
+mkdir -p ~/.agentguard
+touch ~/.agentguard/config.yaml
 ```
 
 ## Full Configuration Reference
 
 ### `scan` — Repository Discovery
 
-Controls how `reagent inventory` discovers repositories and `.claude/` directories.
+Controls how `agentguard inventory` discovers repositories and `.claude/` directories.
 
 ```yaml
 scan:
@@ -55,14 +55,14 @@ Controls where the asset catalog is stored and how it refreshes.
 
 ```yaml
 catalog:
-  path: ~/.reagent/catalog.jsonl
+  path: ~/.agentguard/catalog.jsonl
   auto_refresh: true
   refresh_interval: 3600       # Seconds between auto-refreshes
 ```
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `path` | path | `~/.reagent/catalog.jsonl` | Catalog file location |
+| `path` | path | `~/.agentguard/catalog.jsonl` | Catalog file location |
 | `auto_refresh` | bool | `true` | Automatically refresh catalog on access |
 | `refresh_interval` | int | `3600` | Minimum seconds between refreshes |
 
@@ -73,7 +73,7 @@ Controls Claude Code session event collection used for evaluation and instinct e
 ```yaml
 telemetry:
   enabled: true
-  event_store: ~/.reagent/events.jsonl
+  event_store: ~/.agentguard/events.jsonl
   claude_projects_path: ~/.claude/projects
   hash_file_paths: false
   exclude_content: false
@@ -83,7 +83,7 @@ telemetry:
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `enabled` | bool | `true` | Enable telemetry event collection |
-| `event_store` | path | `~/.reagent/events.jsonl` | Event log file location |
+| `event_store` | path | `~/.agentguard/events.jsonl` | Event log file location |
 | `claude_projects_path` | path | `~/.claude/projects` | Claude Code session data directory. Override when sessions are stored in a non-default location. Also settable via `CLAUDE_PROJECTS_PATH` env var. |
 | `hash_file_paths` | bool | `false` | Hash file paths in events for privacy |
 | `exclude_content` | bool | `false` | Exclude file content from events |
@@ -143,11 +143,11 @@ code_intel:
 | `fallback_on_error` | bool | `true` | Fall back to basic analysis when GitNexus fails |
 
 !!! note
-    Requires the `code-intel` extra: `pip install reagent[code-intel]`
+    Requires the `code-intel` extra: `pip install agentguard[code-intel]`
 
 ### `harness` — Cross-Harness Generation
 
-Controls which AI harness formats Reagent targets when generating assets.
+Controls which AI harness formats AgentGuard targets when generating assets.
 
 ```yaml
 harness:
@@ -170,7 +170,7 @@ Controls application logging output.
 ```yaml
 log:
   level: WARNING
-  file: ~/.reagent/reagent.log
+  file: ~/.agentguard/agentguard.log
   max_bytes: 5000000           # 5 MB
   backup_count: 3
 ```
@@ -178,7 +178,7 @@ log:
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `level` | string | `"WARNING"` | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
-| `file` | path | `~/.reagent/reagent.log` | Log file location |
+| `file` | path | `~/.agentguard/agentguard.log` | Log file location |
 | `max_bytes` | int | `5000000` | Maximum log file size before rotation (bytes) |
 | `backup_count` | int | `3` | Number of rotated log backups to keep |
 
@@ -247,23 +247,23 @@ Environment variables override config file values. Set them in your shell profil
 | `ANTHROPIC_API_KEY` | Anthropic API key | `sk-ant-api03-...` |
 | `OPENAI_API_KEY` | OpenAI API key | `sk-...` |
 | `GOOGLE_API_KEY` | Google Gemini API key | `AIza...` |
-| `REAGENT_LLM_PROVIDER` | Override LLM provider | `anthropic`, `openai`, `google`, `ollama` |
-| `REAGENT_LLM_MODEL` | Override LLM model | `claude-sonnet-4-20250514` |
-| `REAGENT_LLM_ENABLED` | Disable LLM generation | `0` or `false` to disable |
+| `AGENTGUARD_LLM_PROVIDER` | Override LLM provider | `anthropic`, `openai`, `google`, `ollama` |
+| `AGENTGUARD_LLM_MODEL` | Override LLM model | `claude-sonnet-4-20250514` |
+| `AGENTGUARD_LLM_ENABLED` | Disable LLM generation | `0` or `false` to disable |
 | `OLLAMA_HOST` | Ollama server URL | `http://localhost:11434` (default) |
 
 ### Storage & Telemetry
 
 | Variable | Description | Example |
 |---|---|---|
-| `REAGENT_DB_PATH` | SQLite database path override | `/path/to/reagent.db` |
+| `AGENTGUARD_DB_PATH` | SQLite database path override | `/path/to/agentguard.db` |
 | `CLAUDE_PROJECTS_PATH` | Claude Code sessions directory for instinct extraction. Override when sessions are stored in a non-default location. | `~/.claude/projects` (default) |
 
 ### Provider Auto-Detection
 
-Reagent auto-detects the LLM provider based on which API key environment variables are set. If multiple keys are present, the config file `llm.provider` setting (or `REAGENT_LLM_PROVIDER`) determines which is used. The priority:
+AgentGuard auto-detects the LLM provider based on which API key environment variables are set. If multiple keys are present, the config file `llm.provider` setting (or `AGENTGUARD_LLM_PROVIDER`) determines which is used. The priority:
 
-1. `REAGENT_LLM_PROVIDER` environment variable
+1. `AGENTGUARD_LLM_PROVIDER` environment variable
 2. `llm.provider` in config.yaml
 3. First available key: Anthropic → OpenAI → Google → Ollama
 

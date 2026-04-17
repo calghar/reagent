@@ -1,20 +1,20 @@
 # CI Integration
 
-Reagent integrates into CI/CD pipelines to enforce asset quality gates, detect drift, and surface improvement suggestions. Run `reagent ci` directly in any CI system.
+AgentGuard integrates into CI/CD pipelines to enforce asset quality gates, detect drift, and surface improvement suggestions. Run `agentguard ci` directly in any CI system.
 
-## Running `reagent ci`
+## Running `agentguard ci`
 
-Install Reagent and run the CI command:
+Install AgentGuard and run the CI command:
 
 ```bash
-pip install reagent
-reagent ci --threshold 70 --mode check --security
+pip install agentguard
+agentguard ci --threshold 70 --mode check --security
 ```
 
 ### CLI Options
 
 ```bash
-reagent ci [OPTIONS]
+agentguard ci [OPTIONS]
 ```
 
 | Flag | Description | Default |
@@ -35,11 +35,11 @@ reagent ci [OPTIONS]
 
 ## Drift Detection
 
-Detect stale, outdated, or missing assets with `reagent drift`:
+Detect stale, outdated, or missing assets with `agentguard drift`:
 
 ```bash
-reagent drift --repo ./my-project
-reagent drift --json   # Machine-readable output
+agentguard drift --repo ./my-project
+agentguard drift --json   # Machine-readable output
 ```
 
 Drift detection reports:
@@ -51,7 +51,7 @@ Drift detection reports:
 ### CI Drift Check
 
 ```bash
-reagent drift --repo . --json
+agentguard drift --repo . --json
 ```
 
 ## Example CI Configurations
@@ -64,8 +64,8 @@ asset-quality:
   image: python:3.13-slim
   stage: test
   script:
-    - pip install reagent
-    - reagent ci --threshold 70 --security
+    - pip install agentguard
+    - agentguard ci --threshold 70 --security
   rules:
     - changes:
         - .claude/**/*
@@ -76,8 +76,8 @@ asset-quality:
 ```bash
 #!/bin/bash
 set -e
-pip install reagent
-reagent ci --threshold 70 --mode check --security
+pip install agentguard
+agentguard ci --threshold 70 --mode check --security
 
 # Exit code handling:
 # 0 = all passed
@@ -90,7 +90,7 @@ reagent ci --threshold 70 --mode check --security
 Use `--json` for machine-readable output:
 
 ```bash
-reagent ci --json
+agentguard ci --json
 ```
 
 ```json

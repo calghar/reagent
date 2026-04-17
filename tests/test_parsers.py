@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from reagent.core.parsers import (
+from agentguard.core.parsers import (
     AssetType,
     compute_content_hash,
     parse_agent,

@@ -10,11 +10,11 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures" / "sample_project"
 def _isolate_db(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Generator[None]:
-    """Ensure tests never write to the real ~/.reagent/reagent.db."""
-    db_dir = tmp_path_factory.mktemp("reagent_test_db")
-    db_path = str(db_dir / "reagent.db")
+    """Ensure tests never write to the real ~/.agentguard/agentguard.db."""
+    db_dir = tmp_path_factory.mktemp("agentguard_test_db")
+    db_path = str(db_dir / "agentguard.db")
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("REAGENT_DB_PATH", db_path)
+        mp.setenv("AGENTGUARD_DB_PATH", db_path)
         yield
 
 
@@ -102,9 +102,9 @@ def sample_claude_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
-def reagent_home(tmp_path: Path) -> Path:
-    """Create a temporary ~/.reagent directory."""
-    home = tmp_path / ".reagent"
+def agentguard_home(tmp_path: Path) -> Path:
+    """Create a temporary ~/.agentguard directory."""
+    home = tmp_path / ".agentguard"
     home.mkdir()
     (home / "catalog.jsonl").write_text("")
     (home / "events.jsonl").write_text("")
