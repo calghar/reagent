@@ -146,6 +146,11 @@ from reagent.cli.commands.diverge import diverge  # noqa: E402
 
 cli.add_command(diverge)
 
+# counterfactual replay gate
+from reagent.cli.commands.counterfactual import counterfactual_cmd  # noqa: E402
+
+cli.add_command(counterfactual_cmd)
+
 
 if __name__ == "__main__":
     sys.exit(main())

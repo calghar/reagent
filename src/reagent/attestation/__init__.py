@@ -1,3 +1,7 @@
+from reagent.attestation.counterfactual import (
+    CounterfactualGate,
+    CounterfactualResult,
+)
 from reagent.attestation.divergence import (
     DivergenceDetector,
     DivergenceFinding,
@@ -23,6 +27,8 @@ __all__ = [
     "AttestationRecord",
     "AttestationStore",
     "BehavioralFingerprint",
+    "CounterfactualGate",
+    "CounterfactualResult",
     "DivergenceDetector",
     "DivergenceFinding",
     "DivergenceSeverity",

@@ -48,10 +48,13 @@ class CIResult(BaseModel):
         passed: True when all assets meet the threshold and security passes.
         asset_results: Per-asset result dicts with name/type/score/grade/passed.
         drift_reports: Serialised DriftReport dicts.
+        behavioral_findings: Serialised DivergenceFinding dicts from the
+            counterfactual gate; any CRITICAL/HIGH entry triggers exit 3.
         suggestions: Human-readable improvement suggestions.
         fixes_applied: Filenames written to disk in auto-fix mode.
         diff: Unified diff of all changes made in auto-fix mode.
-        exit_code: 0 (pass), 1 (quality fail), or 2 (security fail).
+        exit_code: 0 (pass), 1 (quality fail), 2 (security fail), or
+            3 (behavioral divergence at merge time).
     """
 
     overall_score: float = 0.0
@@ -59,6 +62,7 @@ class CIResult(BaseModel):
     passed: bool = True
     asset_results: list[dict[str, object]] = Field(default_factory=list)
     drift_reports: list[dict[str, object]] = Field(default_factory=list)
+    behavioral_findings: list[dict[str, object]] = Field(default_factory=list)
     suggestions: list[str] = Field(default_factory=list)
     fixes_applied: list[str] = Field(default_factory=list)
     diff: str = ""
@@ -161,9 +165,7 @@ def _apply_autofix(
     Returns:
         Tuple of (empty list, empty string).
     """
-    logger.warning(
-        "Auto-fix is unavailable: the creation module has been removed"
-    )
+    logger.warning("Auto-fix is unavailable: the creation module has been removed")
     return [], ""
 
 
@@ -216,23 +218,34 @@ def _compute_overall_score(asset_results: list[dict[str, object]]) -> float:
     return sum(scores) / len(scores) if scores else 0.0
 
 
+def _behavioral_blocks(findings: list[dict[str, object]]) -> bool:
+    """Return True if any behavioral finding is severity CRITICAL or HIGH."""
+    return any(str(f.get("severity", "")) in ("critical", "high") for f in findings)
+
+
 def _determine_exit_code(
     asset_results: list[dict[str, object]],
     security_grade: str,
     security_enabled: bool,
+    behavioral_findings: list[dict[str, object]] | None = None,
 ) -> int:
     """Compute the exit code for the CI run.
 
-    Priority: security failures (2) > quality failures (1) > pass (0).
+    Priority: behavioral divergence (3) > security failures (2) >
+    quality failures (1) > pass (0).
 
     Args:
         asset_results: Serialised per-asset result dicts.
         security_grade: Letter grade from the security scanner.
         security_enabled: Whether security scanning was performed.
+        behavioral_findings: Optional serialised DivergenceFinding dicts
+            from the counterfactual gate.
 
     Returns:
         Exit code integer.
     """
+    if behavioral_findings and _behavioral_blocks(behavioral_findings):
+        return 3
     if security_enabled and not _security_grade_passes(security_grade):
         return 2
     quality_fail = any(not bool(ar["passed"]) for ar in asset_results)
@@ -243,20 +256,25 @@ def _determine_passed(
     asset_results: list[dict[str, object]],
     security_grade: str,
     security_enabled: bool,
+    behavioral_findings: list[dict[str, object]] | None = None,
 ) -> bool:
-    """Return True when all quality and security checks pass.
+    """Return True when quality, security, and behavioral checks all pass.
 
     Args:
         asset_results: Serialised per-asset result dicts.
         security_grade: Letter grade from the security scanner.
         security_enabled: Whether security scanning was performed.
+        behavioral_findings: Optional serialised DivergenceFinding dicts.
 
     Returns:
         True if the CI run should be considered passing.
     """
     quality_ok = all(bool(ar["passed"]) for ar in asset_results)
     security_ok = (not security_enabled) or _security_grade_passes(security_grade)
-    return quality_ok and security_ok
+    behavioral_ok = not (
+        behavioral_findings and _behavioral_blocks(behavioral_findings)
+    )
+    return quality_ok and security_ok and behavioral_ok
 
 
 def _empty_result(note: str = "") -> CIResult:
