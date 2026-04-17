@@ -131,13 +131,21 @@ class TrustStore:
         )
         return record
 
-    def promote(self, asset_id: str, target: TrustLevel, reason: str) -> TrustRecord:
+    def promote(
+        self,
+        asset_id: str,
+        target: TrustLevel,
+        reason: str,
+        content_hash: str = "",
+    ) -> TrustRecord:
         """Promote an asset to a higher trust level.
 
         Args:
             asset_id: Asset identifier.
             target: Target trust level.
             reason: Justification for the promotion.
+            content_hash: Current content hash, stamped on the record so the
+                shield can resolve tier by hash without needing the asset_id.
 
         Returns:
             Updated trust record.
@@ -163,6 +171,8 @@ class TrustStore:
         old_level = record.trust_level
         record.trust_level = target
         record.last_review = datetime.now(UTC)
+        if content_hash:
+            record.content_hash_at_review = content_hash
         record.history.append(
             TrustEvent(
                 asset_id=asset_id,
@@ -276,6 +286,26 @@ class TrustStore:
     def records_at_level(self, level: TrustLevel) -> list[TrustRecord]:
         """Return all records at a specific trust level."""
         return [r for r in self.all_records() if r.trust_level == level]
+
+    def get_by_content_hash(self, content_hash: str) -> TrustRecord | None:
+        """Return the trust record whose content_hash_at_review matches.
+
+        Used by the runtime shield to resolve the current tier for an asset
+        identified only by its hash. Returns the most recently reviewed record
+        if multiple assets ever shared a hash.
+        """
+        if not content_hash:
+            return None
+        matches = [
+            r
+            for r in self._records.values()
+            if r.content_hash_at_review == content_hash
+        ]
+        if not matches:
+            return None
+        return max(
+            matches, key=lambda r: r.last_review or datetime.min.replace(tzinfo=UTC)
+        )
 
 
 def log_trust_event(log_path: Path, event: TrustEvent) -> None:

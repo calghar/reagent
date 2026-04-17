@@ -328,8 +328,12 @@ def trust_promote(asset_id: str, level: int, reason: str) -> None:
         console.print("Valid levels: 2 (REVIEWED), 3 (VERIFIED)")
         raise SystemExit(1) from None
 
+    catalog = _load_catalog(config)
+    entry = catalog.get(asset_id)
+    content_hash = entry.content_hash if entry else ""
+
     try:
-        record = store.promote(asset_id, target, reason)
+        record = store.promote(asset_id, target, reason, content_hash=content_hash)
         store.save()
         console.print(
             f"[green]Promoted {asset_id} to {record.trust_level.name}[/green]"

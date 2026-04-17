@@ -58,11 +58,55 @@ class AttestationPolicySource:
         return record.trust_level if record else TrustLevel.UNTRUSTED
 
 
+class TrustStorePolicySource:
+    """PolicySource that reads the current tier from the TrustStore.
+
+    The TrustStore is the authoritative source for the *current* tier; the
+    AttestationStore only records the tier frozen at signing time, which does
+    not reflect later ``trust promote`` or ``trust demote`` actions.
+    """
+
+    def __init__(self, store: Any | None = None) -> None:
+        from agentguard.config import AgentGuardConfig
+        from agentguard.security.trust import TrustStore
+
+        if store is None:
+            cfg = AgentGuardConfig()
+            trust_path = cfg.catalog.path.parent / "trust.jsonl"
+            store = TrustStore(trust_path)
+            store.load()
+        self._store = store
+
+    def tier_for(self, asset_content_hash: str) -> TrustLevel:
+        record = self._store.get_by_content_hash(asset_content_hash)
+        return record.trust_level if record else TrustLevel.UNTRUSTED
+
+
+class CompositePolicySource:
+    """Resolve tier from the first source that has a record for the hash.
+
+    Default ordering: TrustStore (current tier) then AttestationStore (tier
+    frozen at signing). Returns UNTRUSTED if no source has a record.
+    """
+
+    def __init__(self, sources: list[PolicySource] | None = None) -> None:
+        if sources is None:
+            sources = [TrustStorePolicySource(), AttestationPolicySource()]
+        self._sources = sources
+
+    def tier_for(self, asset_content_hash: str) -> TrustLevel:
+        for source in self._sources:
+            tier = source.tier_for(asset_content_hash)
+            if tier != TrustLevel.UNTRUSTED:
+                return tier
+        return TrustLevel.UNTRUSTED
+
+
 class ShieldEnforcer:
     """Evaluates whether a tool call is permitted under the asset's trust tier."""
 
     def __init__(self, source: PolicySource | None = None) -> None:
-        self._source = source or AttestationPolicySource()
+        self._source = source or CompositePolicySource()
 
     def check(
         self,

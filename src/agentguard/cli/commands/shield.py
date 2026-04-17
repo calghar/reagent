@@ -85,12 +85,12 @@ def status_cmd(asset_path: Path) -> None:
     from rich.console import Console
     from rich.table import Table
 
-    from agentguard.shield.enforcer import AttestationPolicySource
+    from agentguard.shield.enforcer import CompositePolicySource
     from agentguard.shield.policy import policy_for
 
     console = Console()
     content_hash = hashlib.sha256(asset_path.read_bytes()).hexdigest()
-    tier = AttestationPolicySource().tier_for(content_hash)
+    tier = CompositePolicySource().tier_for(content_hash)
     policy = policy_for(tier)
 
     console.print(f"Asset:        {asset_path}")
