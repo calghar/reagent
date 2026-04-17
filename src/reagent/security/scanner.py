@@ -35,6 +35,8 @@ class SecurityFinding(BaseModel):
     matched_text: str
     description: str
     file_path: Path
+    mitre_atlas: list[str] = Field(default_factory=list)
+    owasp_ast10: list[str] = Field(default_factory=list)
 
 
 class ScanReport(BaseModel):
@@ -83,6 +85,11 @@ class SecurityRule:
     tags: list[str] = field(default_factory=list)
     enabled: bool = True
     references: list[str] = field(default_factory=list)
+    # Threat-taxonomy mappings. MITRE ATLAS technique IDs (e.g. "AML.T0051")
+    # and OWASP Agentic Skills Top-10 IDs (e.g. "AST01"). Every CRITICAL rule
+    # must carry at least one ATLAS tag; see tests/test_security_taxonomy.py.
+    mitre_atlas: list[str] = field(default_factory=list)
+    owasp_ast10: list[str] = field(default_factory=list)
 
 
 # Module-level rule registry
@@ -509,6 +516,8 @@ def _register_builtin_rules() -> None:
             pattern=_PROMPT_INJECTION_RE,
             tags=["prompt-injection"],
             references=["OWASP LLM01", "Snyk E001/E004"],
+            mitre_atlas=["AML.T0051.000"],
+            owasp_ast10=["AST01"],
         )
     )
     register_rule(
@@ -519,6 +528,8 @@ def _register_builtin_rules() -> None:
             pattern=_PERMISSION_ESCALATION_RE,
             tags=["permission"],
             references=["OWASP LLM06"],
+            mitre_atlas=["AML.T0011"],
+            owasp_ast10=["AST03", "AST08"],
         )
     )
     register_rule(
@@ -528,7 +539,13 @@ def _register_builtin_rules() -> None:
             description="Hidden Unicode character that could obscure malicious content",
             checker=_check_hidden_unicode,
             tags=["obfuscation"],
-            references=["Snyk E001", "Invariant Labs TPA"],
+            references=[
+                "Snyk E001",
+                "Invariant Labs TPA",
+                "Pillar Rules-File Backdoor",
+            ],
+            mitre_atlas=["AML.T0051.001", "AML.T0054"],
+            owasp_ast10=["AST07"],
         )
     )
     register_rule(
@@ -539,6 +556,8 @@ def _register_builtin_rules() -> None:
             checker=_check_external_hook_url,
             tags=["exfiltration", "hook"],
             references=["Snyk TF001"],
+            mitre_atlas=["AML.T0024", "AML.T0025"],
+            owasp_ast10=["AST02"],
         )
     )
     register_rule(
@@ -552,6 +571,8 @@ def _register_builtin_rules() -> None:
                 "Snyk E001/E003",
                 "Invariant Labs Tool Poisoning Attacks",
             ],
+            mitre_atlas=["AML.T0051.001", "AML.T0011"],
+            owasp_ast10=["AST01", "AST10"],
         )
     )
     register_rule(
@@ -562,6 +583,8 @@ def _register_builtin_rules() -> None:
             pattern=_ROLE_HIJACKING_RE,
             tags=["prompt-injection"],
             references=["OWASP LLM01", "Snyk E004"],
+            mitre_atlas=["AML.T0051.000", "AML.T0054"],
+            owasp_ast10=["AST01"],
         )
     )
 
@@ -574,6 +597,8 @@ def _register_builtin_rules() -> None:
             pattern=_UNRESTRICTED_BASH_RE,
             tags=["permission", "excessive-agency"],
             references=["OWASP LLM06"],
+            mitre_atlas=["AML.T0011", "AML.T0050"],
+            owasp_ast10=["AST03"],
         )
     )
     register_rule(
@@ -584,6 +609,8 @@ def _register_builtin_rules() -> None:
             pattern=_SHELL_PIPE_RE,
             tags=["supply-chain", "rce"],
             references=["OWASP LLM03", "Snyk E006"],
+            mitre_atlas=["AML.T0010", "AML.T0050"],
+            owasp_ast10=["AST05"],
         )
     )
     register_rule(
@@ -594,6 +621,8 @@ def _register_builtin_rules() -> None:
             pattern=_SENSITIVE_FILE_RE,
             tags=["data-leak"],
             references=["OWASP LLM02"],
+            mitre_atlas=["AML.T0025"],
+            owasp_ast10=["AST02", "AST09"],
         )
     )
     register_rule(
@@ -604,6 +633,8 @@ def _register_builtin_rules() -> None:
             pattern=_SECRET_EXFIL_RE,
             tags=["exfiltration", "data-leak"],
             references=["OWASP LLM02", "Snyk TF001"],
+            mitre_atlas=["AML.T0024", "AML.T0025"],
+            owasp_ast10=["AST02"],
         )
     )
     register_rule(
@@ -614,6 +645,8 @@ def _register_builtin_rules() -> None:
             pattern=_HARDCODED_SECRETS_RE,
             tags=["credential"],
             references=["Snyk W008"],
+            mitre_atlas=["AML.T0025"],
+            owasp_ast10=["AST09"],
         )
     )
     register_rule(
@@ -624,6 +657,8 @@ def _register_builtin_rules() -> None:
             checker=_check_shell_injection,
             tags=["injection"],
             references=["OWASP LLM05"],
+            mitre_atlas=["AML.T0050"],
+            owasp_ast10=["AST06"],
         )
     )
     register_rule(
@@ -634,6 +669,8 @@ def _register_builtin_rules() -> None:
             pattern=_FILESYSTEM_ESCAPE_RE,
             tags=["escape"],
             references=["OWASP LLM06"],
+            mitre_atlas=["AML.T0025"],
+            owasp_ast10=["AST03"],
         )
     )
     register_rule(
@@ -645,6 +682,8 @@ def _register_builtin_rules() -> None:
             pattern=_SUSPICIOUS_URL_RE,
             tags=["supply-chain", "obfuscation"],
             references=["Snyk E005"],
+            mitre_atlas=["AML.T0010"],
+            owasp_ast10=["AST05", "AST07"],
         )
     )
     register_rule(
@@ -655,6 +694,8 @@ def _register_builtin_rules() -> None:
             pattern=_RUNTIME_CODE_FETCH_RE,
             tags=["supply-chain", "rce"],
             references=["Snyk W012", "Snyk E006"],
+            mitre_atlas=["AML.T0010", "AML.T0050"],
+            owasp_ast10=["AST05"],
         )
     )
     register_rule(
@@ -665,6 +706,8 @@ def _register_builtin_rules() -> None:
             pattern=_CREDENTIAL_IN_URL_RE,
             tags=["credential", "data-leak"],
             references=["Snyk W007"],
+            mitre_atlas=["AML.T0025"],
+            owasp_ast10=["AST09"],
         )
     )
 
@@ -676,6 +719,8 @@ def _register_builtin_rules() -> None:
             description="Base64-encoded content that may hide instructions",
             pattern=_BASE64_RE,
             tags=["obfuscation"],
+            mitre_atlas=["AML.T0051.001"],
+            owasp_ast10=["AST07"],
         )
     )
     register_rule(
@@ -685,6 +730,8 @@ def _register_builtin_rules() -> None:
             description="Writes to .claude/ directory which could modify configuration",
             pattern=_WRITE_CLAUDE_DIR_RE,
             tags=["config-modification"],
+            mitre_atlas=["AML.T0010"],
+            owasp_ast10=["AST05"],
         )
     )
     register_rule(
@@ -695,6 +742,8 @@ def _register_builtin_rules() -> None:
             pattern=_GIT_FORCE_PUSH_RE,
             tags=["destructive"],
             references=["Snyk TF002"],
+            mitre_atlas=["AML.T0049"],
+            owasp_ast10=["AST03"],
         )
     )
     register_rule(
@@ -706,6 +755,8 @@ def _register_builtin_rules() -> None:
             pattern=_SYSTEM_SERVICE_MOD_RE,
             tags=["system-modification"],
             references=["Snyk W013"],
+            mitre_atlas=["AML.T0050"],
+            owasp_ast10=["AST03"],
         )
     )
 
@@ -720,6 +771,8 @@ def _register_builtin_rules() -> None:
             pattern=_BYPASS_PERMISSIONS_RE,
             tags=["permission", "bypass"],
             references=["OWASP LLM06"],
+            mitre_atlas=["AML.T0011"],
+            owasp_ast10=["AST03", "AST08"],
         )
     )
     register_rule(
@@ -732,6 +785,8 @@ def _register_builtin_rules() -> None:
             checker=_check_unrestricted_bash_yaml,
             tags=["permission", "excessive-agency"],
             references=["OWASP LLM06"],
+            mitre_atlas=["AML.T0011", "AML.T0050"],
+            owasp_ast10=["AST03"],
         )
     )
     register_rule(
@@ -745,6 +800,8 @@ def _register_builtin_rules() -> None:
             checker=_check_missing_tool_restrictions,
             tags=["excessive-agency"],
             references=["OWASP LLM06"],
+            mitre_atlas=["AML.T0011"],
+            owasp_ast10=["AST03"],
         )
     )
     register_rule(
@@ -755,6 +812,8 @@ def _register_builtin_rules() -> None:
             checker=_check_shell_injection_in_hooks,
             tags=["injection", "hook"],
             references=["OWASP LLM05"],
+            mitre_atlas=["AML.T0050"],
+            owasp_ast10=["AST06"],
         )
     )
     register_rule(
@@ -765,6 +824,8 @@ def _register_builtin_rules() -> None:
             pattern=_HARDCODED_SECRET_STRONG_RE,
             tags=["credential", "secret"],
             references=["Snyk W008", "OWASP LLM02"],
+            mitre_atlas=["AML.T0025"],
+            owasp_ast10=["AST09"],
         )
     )
 
@@ -781,25 +842,30 @@ def scan_content(content: str, file_path: Path) -> list[SecurityFinding]:
         file_path: Path for reporting purposes.
 
     Returns:
-        List of security findings.
+        List of security findings, decorated with taxonomy metadata from
+        the registered rule (MITRE ATLAS technique IDs, OWASP AST10 IDs).
     """
     findings: list[SecurityFinding] = []
     for rule in _RULE_REGISTRY:
         if not rule.enabled:
             continue
         if rule.pattern:
-            findings.extend(
-                _check_lines(
-                    content,
-                    file_path,
-                    rule.pattern,
-                    rule.rule_id,
-                    rule.severity,
-                    rule.description,
-                )
+            new = _check_lines(
+                content,
+                file_path,
+                rule.pattern,
+                rule.rule_id,
+                rule.severity,
+                rule.description,
             )
         elif rule.checker:
-            findings.extend(rule.checker(content, file_path))
+            new = rule.checker(content, file_path)
+        else:
+            continue
+        for finding in new:
+            finding.mitre_atlas = list(rule.mitre_atlas)
+            finding.owasp_ast10 = list(rule.owasp_ast10)
+        findings.extend(new)
     return findings
 
 
