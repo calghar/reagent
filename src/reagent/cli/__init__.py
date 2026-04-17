@@ -151,6 +151,11 @@ from reagent.cli.commands.counterfactual import counterfactual_cmd  # noqa: E402
 
 cli.add_command(counterfactual_cmd)
 
+# telemetry (HLOT attribute emission)
+from reagent.cli.commands.telemetry_cmd import telemetry  # noqa: E402
+
+cli.add_command(telemetry)
+
 
 if __name__ == "__main__":
     sys.exit(main())
