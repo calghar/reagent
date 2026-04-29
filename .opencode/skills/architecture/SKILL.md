@@ -1,8 +1,10 @@
 ---
 name: architecture
-description: dtguard architecture reference. Load when making design decisions, implementing new packages, or reviewing architectural alignment. Captures package boundaries, dtctl alignment constraints, and key conventions.
+description: >-
+  dtguard architecture reference. Load when making design decisions,
+  implementing new packages, or reviewing architectural alignment. Captures
+  package boundaries, dtctl alignment constraints, and key conventions.
 ---
-
 # dtguard Architecture Reference
 
 Quick reference. Full prose in [docs/architecture.md](../../docs/architecture.md).

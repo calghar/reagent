@@ -1,0 +1,88 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "mcp": {
+    "academic-search": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "paper-search-mcp-nodejs"
+      ],
+      "enabled": true
+    },
+    "github": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "environment": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      },
+      "enabled": true
+    },
+    "context7": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "enabled": true
+    },
+    "sequential-thinking": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "enabled": true
+    },
+    "web-search": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "duckduckgo-mcp-server"
+      ],
+      "enabled": true
+    },
+    "dynatrace": {
+      "type": "remote",
+      "url": "https://cpm39986.dev.apps.dynatracelabs.com/platform-reserved/mcp-gateway/v0.1/servers/dynatrace-mcp/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:DYNATRACE_BEARER_TOKEN}"
+      },
+      "enabled": true
+    }
+  },
+  "permission": {
+    "webfetch": "allow",
+    "bash": {
+      "uv sync *": "allow",
+      "uvx ruff *": "allow",
+      "uv run *": "allow",
+      "git add *": "allow",
+      "git commit -m ' *": "allow",
+      "python3 *": "allow"
+    }
+  },
+  "formatter": {
+    "ruff": {
+      "command": [
+        "uvx",
+        "ruff",
+        "format",
+        "--quiet",
+        "$FILE"
+      ],
+      "extensions": [
+        ".py"
+      ]
+    }
+  }
+}

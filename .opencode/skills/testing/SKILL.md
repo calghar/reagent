@@ -1,8 +1,9 @@
 ---
 name: testing
-description: Testing standards for the dtguard project (Go). Load when writing or reviewing tests under cmd/ or internal/.
+description: >-
+  Testing standards for the dtguard project (Go). Load when writing or reviewing
+  tests under cmd/ or internal/.
 ---
-
 # Testing Standards for dtguard
 
 ## Layout

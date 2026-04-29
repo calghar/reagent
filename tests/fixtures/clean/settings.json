@@ -1,6 +1,0 @@
-{
-  "permissions": {
-    "allow": ["Read", "Glob", "Grep"],
-    "deny": ["Bash(rm -rf:*)"]
-  }
-}

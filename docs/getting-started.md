@@ -1,166 +1,69 @@
 # Getting Started
 
-## Installation
+Install dtguard, authenticate to your Dynatrace tenant, and walk one
+asset through the **observe -> propose -> sign** lifecycle.
 
-> **AgentGuard is not yet published to PyPI.** Install from source using the instructions below.
-
-### From Source (recommended)
-
-```bash
-git clone https://github.com/calghar/agentguard.git
-cd agentguard
-
-# Core CLI only
-uv sync
-
-# With dev tools
-uv sync --extra dev
-```
-
-Then run agentguard via:
+## Install
 
 ```bash
-uv run agentguard --help
+brew install dynatrace-oss/tap/dtguard            # preferred
+go install github.com/dynatrace-oss/dtguard@latest # alternative
+dtguard --help
 ```
 
-### Optional Extras
+Requirements:
+
+- A Dynatrace tenant (URL + SSO or API token).
+- An OTel path from where the agent runs to your tenant (OneAgent or
+  OTLP exporter).
+- [dtctl](https://github.com/dynatrace-oss/dtctl) installed and
+  logged in. dtguard inherits dtctl's active context.
+
+## One-time setup
 
 ```bash
-uv sync --extra code-intel      # MCP integration
-uv sync --extra dev             # Dev tools (pytest, ruff, mypy)
+dtctl auth login                                    # via dtctl
+dtguard config use-context default
+dtguard doctor                                      # auth + tenant + OTel reachable
 ```
 
-### From PyPI (coming soon)
+Configuration lives at `~/.config/dtguard/` (Linux) or
+`~/Library/Application Support/dtguard/` (macOS), matching dtctl's
+layout. Safety levels and env vars: see
+[architecture.md](architecture.md#configuration).
+
+## Walk one asset through the lifecycle
 
 ```bash
-pip install agentguard
+# 1. Index assets in the repo. Each asset enters OBSERVED state.
+dtguard get assets --refresh
+
+# 2. Use the agent normally. Every tool call emits HLOT-tagged spans.
+#    See dt-integration.md for the DQL templates and Davis detectors.
+
+# 3. Wait for Davis. Once the stability detector sees enough calls
+#    with a stable shape, Davis emits a Proposal.
+dtguard get proposals
+
+# 4. Sign. The signer's ed25519 key produces an Attestation.
+#    State moves to ATTESTED; Davis now raises on any drift.
+dtguard sign <proposal-id>
+
+# 5. Inspect.
+dtguard describe attestation docs-helper --include shape
 ```
 
-## LLM Configuration
+## Optional: enforcement
 
-AgentGuard's AI-powered features require an LLM provider API key. Without one, AgentGuard
-falls back to rule-based template generation which works but produces less tailored assets.
-
-### Supported Providers
-
-| Provider | Env Variable | Default Model |
-|----------|-------------|---------------|
-| Anthropic (recommended) | `ANTHROPIC_API_KEY` | claude-sonnet-4-20250514 |
-| OpenAI | `OPENAI_API_KEY` | gpt-4o |
-| Google Gemini | `GOOGLE_API_KEY` | gemini-2.5-pro |
-| Ollama (local) | — | llama3 |
-
-Set the env variable for your preferred provider:
+For a synchronous gate at the agent harness (deny tool calls that
+don't match the signed shape):
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
+dtguard shield install
 ```
 
-AgentGuard auto-detects which provider to use based on available API keys.
-
-### Config File
-
-For persistent configuration, create `~/.agentguard/config.yaml`:
-
-```yaml
-llm:
-  provider: anthropic
-  model: claude-sonnet-4-20250514
-```
-
-See the [Configuration Reference](configuration.md) for all available settings and environment variables.
-
-## First Scan
-
-Run `agentguard inventory` to scan your repositories and build the asset catalog:
-
-```bash
-agentguard inventory
-```
-
-This scans all configured roots (default: `~/Development`) for `.claude/` directories and indexes every agent, skill, hook, command, rule, and settings file it finds.
-
-To scan a single repo:
-
-```bash
-agentguard inventory --repo ./my-project
-```
-
-## Understanding the Catalog
-
-After scanning, view your assets:
-
-```bash
-agentguard catalog
-```
-
-Filter by type:
-
-```bash
-agentguard catalog --type agent
-agentguard catalog --type skill
-agentguard catalog --repo my-project
-```
-
-View details for a specific asset:
-
-```bash
-agentguard show <asset-id>
-```
-
-Asset IDs follow the format `repo-name:type:name` (e.g., `my-project:agent:code-reviewer`).
-
-## Next Steps
-
-### Analyze a Repository
-
-Detect languages, frameworks, and conventions:
-
-```bash
-agentguard analyze ./my-project
-```
-
-### Get Suggestions
-
-Get actionable recommendations for improving your assets:
-
-```bash
-agentguard suggest --repo ./my-project
-```
-
-### Security Scan
-
-Audit a `.claude/` directory for security issues:
-
-```bash
-agentguard scan ./my-project/.claude
-agentguard audit --repo ./my-project
-```
-
-### Detect Drift
-
-Check for stale, outdated, or missing assets:
-
-```bash
-agentguard drift --repo ./my-project
-```
-
-### CI Integration
-
-Run AgentGuard in CI pipelines with automatic quality gates:
-
-```bash
-agentguard ci --threshold 70   # Exit 1 if below 70, exit 2 if security issues
-```
-
-See the [CI Integration Guide](ci-integration.md) for setup instructions with GitLab CI, Jenkins, and other providers.
-
-### Evaluate Quality
-
-Score your assets based on actual session telemetry:
-
-```bash
-agentguard evaluate --repo ./my-project
-```
-
-See the [CLI Reference](cli-reference.md) for full command documentation.
+This adds a PreToolUse hook and a SessionStart sync hook to
+`.claude/settings.json`. The hook reads from a local SQLite cache at
+`~/.dtguard/dtguard.db`, refreshed by `dtguard sync`. Most
+deployments stop at observe + Davis; see [security.md](security.md)
+for when enforcement is worth the operational cost.
